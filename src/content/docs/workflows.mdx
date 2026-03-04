@@ -1,12 +1,197 @@
 ---
-title: 实战菜谱
-description: 实战操作指南
+title: Multi-Agent 协作流程
+description: QA Gate、任务队列、心跳监控、跨网关协作、Sub-Agent 效率优化的具体实现。
 ---
 
-# 实战菜谱
+## 流程一：标准任务流
 
-这是实战菜谱的占位内容。
+每个任务从人类到交付的完整路径：
 
-## 操作指南
+```
+人类 (Telegram) → Billy 接收
+    ↓
+Billy 写 Task Brief（Goal / Context / Definition of Done / Priority）
+    ↓
+Billy 分发到 Agent Discord 频道
+    ↓
+Agent 执行 → 完成后 @mention Billy
+    ↓
+Billy 收到结果 → 分发给 Hugo (QA)
+    ↓
+Hugo 审查 → PASS / FAIL
+    ↓
+PASS → Billy 向人类汇报
+FAIL → 反馈给原 Agent → 修复 → Hugo 重审 → 循环直到 PASS
+```
 
-占位内容...
+**关键约束：**
+- Billy 永远不碰执行（COO 原则）
+- 没有 Hugo PASS 永远不说"完成"
+- 每步都记录到 `memory/YYYY-MM-DD.md`
+
+---
+
+## 流程二：QA Gate
+
+QA 不是可选的。它是硬编码在系统里的约束。
+
+### Hugo 的审查清单
+
+**代码类交付：**
+1. 代码逻辑是否正确
+2. 是否有安全漏洞（硬编码 API key、未验证输入）
+3. 构建是否通过
+4. 部署是否成功（HTTP 200，不是 404）
+5. 核心功能是否可用（不只是首页能打开）
+
+**内容类交付：**
+1. 事实是否准确
+2. 语法/拼写
+3. 格式是否符合目标平台
+4. 敏感信息检查（不泄露 API key、个人信息）
+
+### QA 失败后的流程
+
+```
+Hugo FAIL → Billy 提取失败原因
+    ↓
+Billy 生成修复 Brief（包含 Hugo 的具体反馈）
+    ↓
+分发回原 Agent
+    ↓
+Agent 修复 → 重新提交
+    ↓
+Hugo 二次审查
+    ↓
+如果再次 FAIL → 升级给人类
+```
+
+**硬规则：** 同一任务 Hugo 连续 FAIL 两次 → 升级给人类，不继续循环。
+
+---
+
+## 流程三：任务队列
+
+所有任务记录在 `memory/task-queue.md`。格式：
+
+```markdown
+- [ ] 任务描述 | agent: xxx | priority: P0 | added: 时间戳
+- [x] 已完成任务 | completed: 时间戳 | qa_status: PASS
+- [~] 进行中任务 | dispatched: 时间戳
+- [-] 已取消/回收 | reason: 原因
+```
+
+### 任务优先级
+
+| 级别 | 含义 | 行为 |
+|-----|------|------|
+| P0 | 人类明确要求 | 需要人类审批后执行 |
+| P1 | 重要 | 通知人类后执行 |
+| P2 | 自动化 | 直接执行 |
+| P3 | 低风险 | 直接执行，用便宜模型 |
+
+### 任务队列规则
+
+1. 人类给的指令 → 全部变成 `pending` 任务，零例外
+2. 队列里有 `pending` 任务 → 立即分发下一个
+3. Agent 完成 → 检查队列 → 分发下一个
+4. 永远不写 "等 Z 决定" 除非真的需要人类输入（比如需要密码、需要付款）
+5. 拿不准的 → 默认执行
+
+**这条规则的起源：** 2026 年 2 月 11 日，Sub-agent 凌晨 7:14 完成任务。剩余任务被写进 "Still TODO" 列表，没有继续执行。Billy 空转了 4 小时。人类醒来发现什么都没动。
+
+---
+
+## 流程四：心跳监控
+
+Billy 每 15 分钟执行一次自检（cron 触发）：
+
+### 自检清单
+
+1. **读取今天的 daily log** — 了解上下文
+2. **读取任务队列** — 有没有 pending 任务
+3. **自问三个问题：**
+   - 有没有接近的 deadline？（生日、纪念日、签证）
+   - 有没有停滞的项目需要推一下？
+   - 有没有人类交代的事还没做？
+4. **如果有需要行动的事 → 做**
+5. **如果没有 → HEARTBEAT_OK**
+
+### Agent 失联处理
+
+当 Agent 超过 30 分钟没有完成确认：
+
+```
+检测到超时
+    ↓
+Telegram 通知人类：谁、什么任务、多久了
+    ↓
+人类决定：重试 / 换 Agent / 手动处理
+```
+
+**已知缺陷：** 如果 Agent 一直在输出但方向错误，超时不会触发。需要结果验证机制（还没实现）。
+
+---
+
+## 流程五：跨网关协作
+
+MBA（Billy + Hugo）和 Mac Mini（Gus + Jason + Dora）在不同网关上。`sessions_send` 只在同网关内有效。
+
+### 当前方案
+
+- **Billy → Gus/Jason/Dora：** 通过 Discord 消息发送（`message` 工具或 `openclaw message send` CLI）
+- **Gus/Jason/Dora → Billy：** 通过 Discord @mention（Billy 配置了 `requireMention: false`，理论上可以看到所有消息）
+- **Billy → Hugo：** 通过 `sessions_send`（同网关，直接通信）
+
+### 踩坑
+
+跨网关最大的问题不是发送，是 **确认收到**。Billy 发了任务，不知道 Agent 有没有开始做。解决方案：
+
+1. 分发后启动 30 秒轮询，检查 Worker 频道有没有响应
+2. 30 分钟任务超时兜底
+3. Agent SOUL.md 里要求收到任务后第一时间确认
+
+---
+
+## 流程六：Sub-Agent 效率原则
+
+### Fat Task, Thin Agent
+
+给 Sub-agent 一次性提供所有信息，不来回追问。目标：每个 Sub-agent 的 session 里只有 3-5 次工具调用。
+
+**反模式：**
+```
+Billy: "帮我查一下竞品"
+Agent: "查哪个竞品？"
+Billy: "CrewAI"
+Agent: "查哪些方面？"
+Billy: "功能、定价、用户量"
+// 三轮对话浪费了，Agent 才开始干活
+```
+
+**正确模式：**
+```
+Billy: "研究 CrewAI。需要：功能列表、定价模型、GitHub stars、融资历史、
+技术栈。参考这个文件 [路径]。输出格式：markdown 表格。30 分钟内完成。"
+// 一轮搞定
+```
+
+### Script-First 原则
+
+如果任务涉及 API 调用，先写脚本再运行。不要让 Agent 一个一个手动调用 API。
+
+**反模式：** Agent 用 20 个工具调用分别查询 20 个 API endpoint
+
+**正确模式：** Agent 写一个 Python 脚本，一次性查询所有 endpoint，输出整理好的结果
+
+### 重试纪律
+
+- 基础设施失败（API 超时、429） → 最多重试 2 次
+- 2 次后 → 停 30 分钟或换方案
+- 永远不无限重试
+
+**这条规则的成本：** 有一次 Sub-agent 花了 30 分钟重试一个已经耗尽配额的 API。30 分钟 = 0 产出。
+
+---
+
+*下一篇：[AI Agent 的非共识思考](/opinions/) — 关于组织、产品、记忆力的看法。*

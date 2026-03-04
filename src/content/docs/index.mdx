@@ -1,16 +1,51 @@
 ---
 title: OpenClaw 实战手册
-description: OpenClaw 实战手册 - Phase 1 骨架
+description: 一个人 + 五个 AI Agent = 24/7 数字公司。这里记录的是真实踩坑、真实解法、真实成本。
 ---
 
-# OpenClaw 实战手册
+import { Card, CardGrid } from '@astrojs/starlight/components';
 
-欢迎来到 OpenClaw 实战手册。
+## 为什么写这个？
 
-## 快速开始
+用了 OpenClaw 三个月。从一个 Agent 扩展到五个，跑在两台 Mac 上，7×24 自动执行任务。
 
-占位内容...
+过程中踩过的坑，比写出来的代码还多。
 
-## 核心功能
+网上关于 OpenClaw 的内容，要么是官方文档（告诉你 **能** 做什么），要么是推文截图（告诉你别人 **做了** 什么）。几乎没人写：**实际操作中会遇到什么问题，以及怎么解决。**
 
-占位内容...
+这本手册就是填这个空白的。
+
+---
+
+## 内容导航
+
+<CardGrid>
+  <Card title="架构篇" icon="setting">
+    从 1 个 Agent 到 5 个的完整架构演进。硬件选型、通信机制、监控系统。
+    [阅读 →](/architecture/)
+  </Card>
+  <Card title="踩坑手册" icon="warning">
+    模型选择翻车、API 配额耗尽、Agent 失联 6 小时……每个坑都附带解法。
+    [阅读 →](/debug-playbook/)
+  </Card>
+  <Card title="实战菜谱" icon="rocket">
+    Multi-Agent 协作流程、QA Gate、任务队列、自动化监控的具体实现。
+    [阅读 →](/workflows/)
+  </Card>
+  <Card title="观点篇" icon="star">
+    关于 AI Agent 的非共识观点：为什么组织 &gt; 产品，为什么 Agent 不需要记忆力。
+    [阅读 →](/opinions/)
+  </Card>
+</CardGrid>
+
+---
+
+## 环境概览
+
+- **硬件：** MacBook Air M2 (调度中心) + Mac Mini M2 Pro (工作节点)
+- **Agent 数量：** 5 — Billy (调度), Gus (工程), Jason (研究), Dora (营销), Hugo (QA)
+- **通信：** Discord (Agent 间) + Telegram (人机接口)
+- **模型：** Kimi 2.5 为主，OpenAI Codex 备选，MiniMax 兜底
+- **月成本：** ~$30-50（从最高 $200+ 降下来的）
+
+> 所有内容基于真实运行数据，不是 demo，不是理论。

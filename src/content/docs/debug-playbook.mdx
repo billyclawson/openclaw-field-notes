@@ -1,12 +1,125 @@
 ---
-title: 踩坑手册
-description: 常见问题与解决方案
+title: 模型选择踩坑记：从Anthropic被封到Kimi 2.5真香
+description: 在 AI Agent 运营中踩过的六个大坑，每个都附带解法和预防机制。
 ---
 
-# 踩坑手册
+## 坑 #1：Anthropic OAuth 封禁
 
-这是踩坑手册的占位内容。
+**发生了什么：** 用 Claude Max 订阅（$200/月）跑 OpenClaw Agent。一切正常，直到第三周 — Anthropic 检测到 OAuth token 被用于自动化调用，直接封禁。
 
-## 常见问题
+**影响：** 所有 Agent 瞬间停摆。没有降级、没有警告、没有邮件。Token 直接失效。
 
-占位内容...
+**解法：**
+- 立即切换到 Kimi 2.5（`kimi-coding/kimi-for-coding`）
+- 保留 Claude Max 订阅用于 VS Code 插件（人类手动使用）
+- OpenClaw Agent 层面完全不用 Anthropic 模型
+
+**预防机制：**
+- MEMORY.md 写入硬规则：「⛔ DO NOT use Anthropic models in OpenClaw」
+- 每个 Agent 的 SOUL.md 都有提醒
+- 模型配置文件中删除所有 Anthropic fallback
+
+**教训：** 订阅 ≠ API 权限。大多数消费级订阅明确禁止自动化调用。
+
+---
+
+## 坑 #2：OpenAI API 配额耗尽
+
+**发生了什么：** GPT-4 API 有 rate limit + 月度配额。Agent 跑了一周，配额见底。开始疯狂 429。
+
+**影响：** Sub-agent 花 30+ 分钟重试一个已经死了的 API。无效循环，浪费时间。
+
+**解法：**
+- 建立三层 fallback：Kimi 2.5 → OpenAI Codex → MiniMax M2.5
+- Agent 尝试 2 次失败后自动停止，不无限重试
+- 每周做一次 API key 健康检查
+
+**预防机制：**
+- TOOLS.md 维护「已知死 API」列表
+- 心跳检查时附带 API 可用性验证
+- 硬规则：2 次基础设施失败 → 停 30 分钟或换方案
+
+---
+
+## 坑 #3：Agent 静默消失
+
+**发生了什么：** 派任务给 Gus（工程师 Agent），他说"30-40 分钟搞定"。5 小时后：文件没改、人没回应、Discord 静默。
+
+**影响：** 人类睡觉了，以为任务在进行。醒来发现零进展。
+
+**解法：**
+- 实装 30 分钟任务超时（纯时间驱动，不依赖 Agent 行为）
+- 超时 → 自动 Telegram 通知人类
+- 同时在 Agent SOUL.md 里加规则：完成后必须 @mention Billy
+
+**预防机制：**
+- 三层监控（心跳 + 阻塞检测 + 任务超时）
+- 最后一层是最可靠的 — 只看时间，不管 Agent 在干什么
+
+**已知缺陷：** 如果 Agent 一直在输出内容但方向完全错误，超时机制不会触发。这需要结果验证，还没实现。
+
+---
+
+## 坑 #4：@mention 三连翻车
+
+详见 [架构篇 - 通信机制](/architecture/#踩坑mention-的三次翻车)。
+
+简单说：花了三天才让 Agent 之间的消息通知正常工作。问题不在发送端，在接收端配置。
+
+**教训：** 通信链路比你想象的脆弱。任何一个环节出错，消息就是「发了但没收到」。
+
+---
+
+## 坑 #5：没做 QA 就交付
+
+**发生了什么：** 2026 年 2 月 8 日，同时部署了 DogSnap 和 FamilyVault 两个产品。Sub-agent 说"部署完成"，我直接把链接发给人类。
+
+DogSnap 的扫描功能完全坏掉 — 用了一个不存在的模型名。人类自己发现的。
+
+**影响：** 信任崩塌。从此人类对所有 Agent 的交付持怀疑态度。
+
+**解法：**
+- 建立 QA Gate：所有交付必须经过 Hugo（QA Agent）审查
+- Hugo 做代码审查 + 功能测试 + 部署验证
+- 没有 Hugo 的 PASS，Billy 永远不说"完成了"
+
+**预防机制：**
+- SOUL.md 硬规则：「⛔ NEVER report done without Hugo PASS」
+- TOOLS.md 硬规则：「⛔ MANDATORY QA BEFORE SEND」
+- 这是写在系统提示词里的，不是建议，是约束
+
+---
+
+## 坑 #6：Context Window 爆满
+
+**发生了什么：** Billy 在一个 session 里处理了太多任务。Context 到 70% 时开始变慢，到 90% 完全卡死。人类发消息过来，等 5 分钟没回应。
+
+**影响：** 人类以为系统挂了，手动重启了一切。进行中的任务状态丢失。
+
+**解法：**
+- 设置 cron 每 5 分钟检查 context 使用率
+- 60% 时自动保存状态到 memory 文件 + 执行 /compact
+- 永远不让 context 到 70%
+
+**预防机制：**
+- 任务完成后立即归档到 memory/YYYY-MM-DD.md
+- 大任务拆分给 sub-agent，不在 Billy 的 session 里执行
+- 这是 COO 原则的又一个理由 — 调度者的 context 应该只有调度信息
+
+---
+
+## 模型选择矩阵（当前状态）
+
+| 任务类型 | 推荐模型 | 原因 |
+|---------|---------|------|
+| 前端/UI | Kimi 2.5 | CSS/设计能力最强 |
+| 后端/基础设施 | OpenAI Codex | 逻辑推理强，但 UI 弱 |
+| 研究/写作 | Kimi 2.5 | 多语言、速度快 |
+| 预算任务 | MiniMax M2.5 | 最便宜，质量够用 |
+| 复杂推理 | Claude Opus | 仅限人类手动使用 (VS Code) |
+
+**关键发现：** 同一个 Agent 换不同模型，产出质量天差地别。Gus 用 Codex 做前端 — 丑得不能看。换 Kimi 2.5 — 完全不同。模型不是通用的，要按任务匹配。
+
+---
+
+*下一篇：[Multi-Agent 协作流程](/workflows/) — QA Gate、任务队列、心跳监控的具体实现。*

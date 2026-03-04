@@ -1,16 +1,182 @@
 ---
-title: 架构篇
-description: 系统架构与设计文档
+title: 从1个Agent到5个：Multi-Agent架构搭建全过程
+description: 三个月内从单 Agent 演进到五 Agent 分布式架构的完整记录。包含硬件选型、角色分工、通信机制、监控系统。
 ---
 
-# 架构篇
+## 起点：一个人和一个 Agent
 
-这是架构篇的占位内容。在这里可以编写关于 OpenClaw 系统架构的详细文档。
+2026 年 1 月，只有一台 MacBook Air M2 和一个 OpenClaw Agent。它什么都干：写代码、做研究、发消息、跑 cron。
 
-## 概述
+问题很快出现：
 
-占位内容概述...
+- **上下文爆炸** — 一个 Agent 处理所有任务，context window 半小时就满了
+- **任务冲突** — 研究任务和编码任务抢同一个 session
+- **单点故障** — Agent 挂了，整个系统停摆
 
-## 详细说明
+两周后，开始拆分。
 
-更多占位内容...
+---
+
+## 第一次拆分：调度者 + 执行者
+
+最关键的一步是把 **调度** 和 **执行** 分开。
+
+Billy 成为调度中心（Chief of Staff），不写代码、不做研究、不写文案。只做三件事：
+1. 接收人类指令
+2. 拆解任务，分发给执行 Agent
+3. 收集结果，汇报给人类
+
+这个决定解决了 80% 的问题。**COO 原则：调度者永远不碰执行。**
+
+为什么？因为调度者一旦开始执行，就会陷入 debug 循环，丧失全局视野，人类也联系不上它了。这个教训是用好几个通宵换来的。
+
+---
+
+## 角色设计
+
+五个 Agent，每个有明确的职责边界：
+
+**Billy — 调度中心 (COO)**
+- 唯一和人类直接对话的 Agent
+- 通过 Discord 向其他 Agent 下达任务
+- 维护任务队列、监控完成状态
+- 运行在 MacBook Air M2
+
+**Gus — 工程师 (Coder)**
+- 写代码、调试、部署
+- 可以 SSH 到任意机器操作
+- 运行在 Mac Mini M2 Pro
+
+**Jason — 研究员 (Research)**
+- 网络搜索、数据分析、竞品研究
+- 擅长多平台信息聚合
+- 运行在 Mac Mini M2 Pro
+
+**Dora — 营销 (Marketing)**
+- 内容创作、社交媒体、品牌策略
+- 只起草，不发布（人类审批）
+- 运行在 Mac Mini M2 Pro
+
+**Hugo — QA**
+- 审查所有 Agent 的产出
+- 代码审查 + 功能测试 + 部署验证
+- 运行在 MacBook Air M2（和 Billy 同网关）
+
+---
+
+## 硬件架构
+
+```
+MacBook Air M2 (MBA) — 调度节点
+├── Billy (调度)
+├── Hugo (QA)
+└── Gateway A
+
+Mac Mini M2 Pro — 工作节点
+├── Gus (工程)
+├── Jason (研究)
+├── Dora (营销)
+└── Gateway B
+```
+
+**为什么分两台机器？**
+
+不是因为性能不够。M2 Air 跑 5 个 Agent 完全没问题。原因是 **隔离**：
+
+1. 工作节点可以重启、重装，不影响调度中心
+2. 调度中心保持稳定在线，永远可达
+3. 不同的网络策略（工作节点可以跑代理、VPN）
+
+两台机器之间通过 Tailscale 组网，SSH 互通。
+
+---
+
+## 通信机制
+
+Agent 之间不是直接调用 API 通信的。它们通过 **Discord** 对话。
+
+为什么选 Discord？
+
+- 每个 Agent 有独立的频道（#⚡・coder, #🔍・research 等）
+- 消息有持久化记录
+- 人类可以随时查看任何 Agent 的对话
+- 支持 @mention 触发通知
+
+### 通信路径
+
+```
+人类 (Telegram) → Billy (MBA)
+Billy → Discord #⚡・coder → Gus (Mac Mini)
+Gus 完成 → Discord @Billy → Billy (MBA)
+Billy → Hugo (MBA, sessions_send)
+Hugo QA PASS → Billy → 人类 (Telegram)
+```
+
+### 踩坑：@mention 的三次翻车
+
+1. **第一次：** Agent 写 `@BillyClawson` 纯文本 — Discord 不识别，不触发通知
+2. **第二次：** 改成 `<@BOT_ID>` 格式 — Agent SOUL.md 更新了但 session 没刷新，旧 session 还用旧格式
+3. **第三次：** 格式对了，但 Billy 的 Discord 配置里 `users` 列表只有人类的 ID，bot 消息被直接忽略
+
+**最终修复：** Billy 本身配置了 `requireMention: false`，原本就能看到所有消息。真正的问题是跨网关通信 — `sessions_send` 只在同一网关内有效。Mac Mini 上的 Agent 完成任务后，需要通过 Discord @mention 或 Billy 主动轮询来获取结果。
+
+这个 bug 导致 Agent 被阻塞 2+ 小时无人知晓。教训：**通信通道必须端到端测试，不能只测发送端。**
+
+---
+
+## 监控系统
+
+Agent 会失联。不是 "可能会"，是 "一定会"。需要多层监控：
+
+### 第一层：心跳 (Heartbeat)
+Billy 每 15 分钟执行一次自检：
+- 读取任务队列
+- 检查待完成任务
+- 检查 Agent 最后活跃时间
+- 如有异常 → Telegram 通知人类
+
+### 第二层：阻塞检测
+每 10 分钟扫描 Agent Discord 频道：
+- 如果 Agent 提了问题但超过 15 分钟没收到回复 → 告警
+- 已知缺陷：只能检测 "Agent 提问无人回复"，无法检测 "Agent 承诺交付但静默消失"
+
+### 第三层：任务超时
+每个任务有 30 分钟超时（可配置）：
+- 如果分发后 30 分钟没有完成确认 → Telegram 告警
+- 这是最可靠的一层 — 纯时间驱动，不依赖 Agent 行为
+
+### QA Gate（硬性规则）
+所有 Agent 产出必须经过 Hugo 审查，Billy 才能汇报给人类。
+
+这条规则的起源：2026 年 2 月 8 日，部署了两个产品没测试就发给人类。一个功能完全坏掉。人类自己发现的，不是 Agent。
+
+从那以后：**没有 Hugo 的 PASS，永远不说 "完成了"。**
+
+---
+
+## 成本演进
+
+| 阶段 | 月成本 | 模型 |
+|------|--------|------|
+| 单 Agent | ~$200 | Claude (Anthropic API) |
+| 迁移后 | ~$80 | 混合 (Kimi + OpenAI) |
+| 当前 | ~$30-50 | Kimi 2.5 为主 + Codex 备选 |
+
+成本下降的关键不是换便宜模型，而是：
+1. **减少无效调用** — sub-agent 一次性给足上下文，不来回追问
+2. **任务分级** — P3 任务用便宜模型，P0 用最强模型
+3. **避免 debug 循环** — Agent 卡住 2 次就停，不无限重试
+
+---
+
+## 给新手的建议
+
+1. **从 1 个 Agent 开始**，但第一天就把调度和执行分开
+2. **SOUL.md 是最重要的文件** — 它定义了 Agent 的行为边界，写得不好一切都会崩
+3. **通信通道要端到端测试** — 不要假设 "发了就收到了"
+4. **监控不是可选的** — Agent 会失联，你需要知道
+5. **QA Gate 从第一天就加上** — 不然你会发送坏掉的东西给用户
+
+---
+
+*下一篇：[模型选择踩坑记](/debug-playbook/) — 从 Anthropic 被封到 Kimi 2.5 真香的全过程。*
