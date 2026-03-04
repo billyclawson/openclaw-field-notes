@@ -1,36 +1,37 @@
-/* Mintlify-style Light Theme for Starlight */
+/* Mintlify-style Light Theme - Override Dark Mode */
 
-/* Import fonts */
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fragment+Mono:wght@400;700&display=swap");
+/* Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fragment+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&display=swap");
 
-/* Root variables - Light theme matching Mintlify */
-:root {
-  --sl-font: "DM Sans", system-ui, -apple-system, sans-serif;
-  --sl-font-mono: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
-  --sl-font-headings: "DM Sans", system-ui, -apple-system, sans-serif;
-}
-
-/* Force light mode colors */
+/* Override BOTH light and dark themes to force light colors */
 :root,
+:root[data-theme="light"],
+:root[data-theme="dark"],
 [data-theme="light"],
 [data-theme="dark"] {
+  /* Backgrounds */
   --sl-color-bg: #ffffff !important;
   --sl-color-bg-nav: #ffffff !important;
   --sl-color-bg-sidebar: #fafafa !important;
   --sl-color-bg-code: #f9fafb !important;
   --sl-color-bg-inline-code: #f5f5f5 !important;
   
+  /* Text */
   --sl-color-text: #374151 !important;
   --sl-color-text-headings: #111827 !important;
   --sl-color-text-secondary: #6b7280 !important;
   
+  /* Accent (red like Mintlify) */
   --sl-color-accent: #dc2626 !important;
   --sl-color-accent-high: #b91c1c !important;
   --sl-color-accent-low: #fee2e2 !important;
   
+  /* Borders */
   --sl-color-border: #e5e7eb !important;
   --sl-color-border-sidebar: #e5e7eb !important;
   
+  /* Grays */
   --sl-color-gray-1: #f9fafb !important;
   --sl-color-gray-2: #f3f4f6 !important;
   --sl-color-gray-3: #e5e7eb !important;
@@ -38,24 +39,35 @@
   --sl-color-gray-5: #9ca3af !important;
   --sl-color-gray-6: #6b7280 !important;
   --sl-color-gray-7: #374151 !important;
+  
+  /* Fonts */
+  --sl-font: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace !important;
+  --sl-font-mono: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace !important;
+  --sl-font-headings: "DM Sans", system-ui, -apple-system, sans-serif !important;
+}
+
+/* Force light mode on html element */
+html[data-theme="dark"],
+html[data-theme="light"] {
+  color-scheme: light !important;
 }
 
 /* Body */
 body {
-  font-family: var(--sl-font) !important;
+  font-family: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace !important;
   background-color: #ffffff !important;
   color: #374151 !important;
 }
 
-/* Headings */
+/* Headings - DM Sans */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--sl-font-headings) !important;
+  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
   color: #111827 !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
 }
 
 h1 {
-  font-size: 36px !important;
+  font-size: 30px !important;
   font-weight: 700 !important;
 }
 
@@ -64,19 +76,23 @@ h2 {
   margin-top: 48px !important;
 }
 
-/* Header */
-.header {
+/* Header - white background */
+.header,
+header.header {
   background-color: #ffffff !important;
   border-bottom: 1px solid #e5e7eb !important;
 }
 
 .site-title {
   color: #111827 !important;
+  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
   font-weight: 700 !important;
 }
 
-/* Sidebar - Light Mintlify style */
-.sidebar {
+/* Sidebar - light gray background */
+.sidebar,
+nav.sidebar,
+.sidebar-pane {
   background-color: #fafafa !important;
   border-right: 1px solid #e5e7eb !important;
 }
@@ -85,45 +101,57 @@ h2 {
   background-color: #fafafa !important;
 }
 
-/* Sidebar items - DARK text */
-.sidebar a {
+/* Sidebar items - dark gray text */
+.sidebar a,
+.sidebar li a,
+#starlight__sidebar a {
   color: #374151 !important;
   font-size: 14px !important;
   font-weight: 400 !important;
   padding: 8px 16px !important;
   border-radius: 6px !important;
+  font-family: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace !important;
 }
 
-.sidebar a:hover {
+.sidebar a:hover,
+#starlight__sidebar a:hover {
   background-color: #f3f4f6 !important;
   color: #111827 !important;
 }
 
-/* Sidebar active item - Light red bg + red text */
-.sidebar a[aria-current="page"] {
+/* Sidebar active - red left border + light red bg */
+.sidebar a[aria-current="page"],
+#starlight__sidebar a[aria-current="page"],
+.sidebar a[aria-current="true"] {
   background-color: #fee2e2 !important;
   color: #dc2626 !important;
   font-weight: 500 !important;
+  border-left: 3px solid #dc2626 !important;
+  margin-left: -3px !important;
 }
 
 /* Sidebar group headers */
-.sidebar summary {
+.sidebar summary,
+.sidebar .group-label {
   color: #6b7280 !important;
   font-size: 12px !important;
   font-weight: 600 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.05em !important;
+  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
 }
 
-/* Main content */
+/* Main content area - white */
 .main-frame,
 main,
-.content-panel {
+.content-panel,
+.main-pane {
   background-color: #ffffff !important;
 }
 
-/* Right sidebar */
-.right-sidebar {
+/* Right sidebar - white */
+.right-sidebar,
+aside.right-sidebar {
   background-color: #ffffff !important;
 }
 
@@ -132,11 +160,13 @@ main,
   font-size: 12px !important;
   font-weight: 600 !important;
   text-transform: uppercase !important;
+  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
 }
 
 .right-sidebar a {
   color: #6b7280 !important;
   font-size: 13px !important;
+  font-family: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace !important;
 }
 
 .right-sidebar a:hover {
@@ -147,9 +177,9 @@ main,
   color: #dc2626 !important;
 }
 
-/* Code blocks */
+/* Code blocks - light background */
 code {
-  font-family: var(--sl-font-mono) !important;
+  font-family: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace !important;
   background-color: #f5f5f5 !important;
   color: #374151 !important;
   padding: 2px 6px !important;
@@ -167,16 +197,19 @@ pre code {
   background-color: transparent !important;
 }
 
-/* Search */
-site-search button {
+/* Search button */
+site-search button,
+[data-open-modal] {
   background-color: #f3f4f6 !important;
   border: 1px solid #e5e7eb !important;
   border-radius: 9999px !important;
   color: #6b7280 !important;
 }
 
-/* Pagination links */
-.pagination-links a {
+/* Pagination / Prev Next links */
+.pagination-links a,
+footer a[rel="prev"],
+footer a[rel="next"] {
   background-color: #ffffff !important;
   border: 1px solid #e5e7eb !important;
   border-radius: 8px !important;
@@ -195,20 +228,25 @@ table {
 th {
   background-color: #f9fafb !important;
   color: #111827 !important;
+  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
 }
 
 td {
   border-top: 1px solid #e5e7eb !important;
 }
 
-/* Blockquotes */
+/* Blockquotes - orange left border */
 blockquote {
-  border-left: 4px solid #e5e7eb !important;
-  color: #6b7280 !important;
+  border-left: 4px solid #f97316 !important;
+  background-color: #fff7ed !important;
+  color: #374151 !important;
+  padding: 16px !important;
+  border-radius: 0 8px 8px 0 !important;
 }
 
-/* Hide theme toggle */
-starlight-theme-select {
+/* Hide theme toggle - force light mode */
+starlight-theme-select,
+[data-theme-toggle] {
   display: none !important;
 }
 
@@ -221,7 +259,16 @@ a:hover {
   color: #b91c1c !important;
 }
 
+/* Selection highlight */
 ::selection {
   background-color: #fee2e2 !important;
   color: #111827 !important;
+}
+
+/* Page title area */
+.content-panel h1 {
+  color: #111827 !important;
+  font-size: 30px !important;
+  font-weight: 700 !important;
+  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
 }
