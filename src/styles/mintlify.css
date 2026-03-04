@@ -1,0 +1,262 @@
+/* OpenClaw Docs - Dark Theme Exact Match */
+
+/* Force dark mode always - Mintlify style */
+:root {
+  --oc-bg-primary: #0E0C0D;
+  --oc-bg-secondary: #151314;
+  --oc-bg-tertiary: #1C1A1B;
+  --oc-bg-code: #1E1C1D;
+  
+  --oc-accent: #FF5A36;
+  --oc-accent-hover: #FF7A5C;
+  --oc-accent-subtle: rgba(255, 90, 54, 0.15);
+  
+  --oc-text-primary: #FFFFFF;
+  --oc-text-secondary: #B8B5B6;
+  --oc-text-tertiary: #8A8788;
+  
+  --oc-border: #2A2829;
+  --oc-border-subtle: #1F1D1E;
+}
+
+/* Override Starlight to force dark */
+[data-theme="light"],
+[data-theme="dark"],
+:root {
+  --sl-color-bg: var(--oc-bg-primary) !important;
+  --sl-color-bg-nav: var(--oc-bg-primary) !important;
+  --sl-color-bg-sidebar: var(--oc-bg-secondary) !important;
+  --sl-color-bg-inline-code: var(--oc-bg-code) !important;
+  --sl-color-bg-accent: var(--oc-accent-subtle) !important;
+  
+  --sl-color-white: var(--oc-text-primary) !important;
+  --sl-color-text: var(--oc-text-secondary) !important;
+  --sl-color-text-accent: var(--oc-text-primary) !important;
+  
+  --sl-color-accent-low: var(--oc-accent-subtle) !important;
+  --sl-color-accent: var(--oc-accent) !important;
+  --sl-color-accent-high: var(--oc-accent-hover) !important;
+  
+  --sl-color-hairline: var(--oc-border) !important;
+  --sl-color-hairline-shade: var(--oc-border-subtle) !important;
+  
+  --sl-color-gray-1: #FAFAFA;
+  --sl-color-gray-2: #E4E2E3;
+  --sl-color-gray-3: #B8B5B6;
+  --sl-color-gray-4: #8A8788;
+  --sl-color-gray-5: #6A6768;
+  --sl-color-gray-6: #4A4748;
+  --sl-color-gray-7: #2A2829;
+}
+
+/* Global background enforcement */
+html, body {
+  background-color: var(--oc-bg-primary) !important;
+  color: var(--oc-text-secondary) !important;
+}
+
+/* Header - dark with border */
+header.header {
+  background-color: var(--oc-bg-primary) !important;
+  border-bottom: 1px solid var(--oc-border) !important;
+}
+
+.site-title {
+  color: var(--oc-text-primary) !important;
+  font-weight: 600 !important;
+  font-size: 1.125rem !important;
+}
+
+/* Sidebar - darker background */
+.sidebar {
+  background-color: var(--oc-bg-secondary) !important;
+  border-right: 1px solid var(--oc-border) !important;
+}
+
+.sidebar-pane {
+  background-color: var(--oc-bg-secondary) !important;
+}
+
+/* Navigation links */
+.nav-link {
+  color: var(--oc-text-secondary) !important;
+  border-radius: 0.375rem !important;
+  padding: 0.5rem 0.75rem !important;
+  margin: 0.125rem 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.nav-link:hover {
+  background-color: var(--oc-bg-tertiary) !important;
+  color: var(--oc-text-primary) !important;
+}
+
+.nav-link[aria-current="page"] {
+  background-color: var(--oc-accent-subtle) !important;
+  color: var(--oc-accent) !important;
+  font-weight: 500 !important;
+}
+
+/* Main content area */
+.main-pane {
+  background-color: var(--oc-bg-primary) !important;
+}
+
+.content-panel {
+  background-color: var(--oc-bg-primary) !important;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--oc-text-primary) !important;
+  font-family: "DM Sans", -apple-system, sans-serif !important;
+}
+
+h1 {
+  font-size: 2.25rem !important;
+  font-weight: 700 !important;
+}
+
+h2 {
+  font-size: 1.5rem !important;
+  font-weight: 600 !important;
+  margin-top: 2rem !important;
+}
+
+p {
+  color: var(--oc-text-secondary) !important;
+}
+
+/* Links - orange accent */
+a {
+  color: var(--oc-accent) !important;
+}
+
+a:hover {
+  color: var(--oc-accent-hover) !important;
+}
+
+/* Code blocks - dark theme */
+code {
+  background-color: var(--oc-bg-code) !important;
+  color: var(--oc-text-primary) !important;
+  padding: 0.2em 0.4em !important;
+  border-radius: 0.25rem !important;
+  font-family: "Fragment Mono", "SF Mono", monospace !important;
+}
+
+pre {
+  background-color: var(--oc-bg-code) !important;
+  border: 1px solid var(--oc-border) !important;
+  border-radius: 0.5rem !important;
+  padding: 1rem !important;
+}
+
+pre code {
+  background-color: transparent !important;
+}
+
+/* Right sidebar TOC */
+.right-sidebar {
+  background-color: var(--oc-bg-primary) !important;
+  border-left: 1px solid var(--oc-border) !important;
+}
+
+.right-sidebar-panel {
+  background-color: var(--oc-bg-primary) !important;
+}
+
+.toc-link {
+  color: var(--oc-text-tertiary) !important;
+}
+
+.toc-link:hover {
+  color: var(--oc-accent) !important;
+}
+
+/* Search button */
+.site-search button {
+  background-color: var(--oc-bg-tertiary) !important;
+  border: 1px solid var(--oc-border) !important;
+  color: var(--oc-text-tertiary) !important;
+  border-radius: 0.5rem !important;
+}
+
+/* Theme toggle - hide since we force dark */
+starlight-theme-select {
+  display: none !important;
+}
+
+/* Language selector */
+starlight-lang-select select {
+  background-color: var(--oc-bg-tertiary) !important;
+  border: 1px solid var(--oc-border) !important;
+  color: var(--oc-text-secondary) !important;
+  border-radius: 0.375rem !important;
+}
+
+/* Cards for homepage */
+.card {
+  background-color: var(--oc-bg-tertiary) !important;
+  border: 1px solid var(--oc-border) !important;
+  border-radius: 0.75rem !important;
+  padding: 1.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.card:hover {
+  border-color: var(--oc-accent) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Tables */
+table {
+  background-color: var(--oc-bg-secondary) !important;
+  border: 1px solid var(--oc-border) !important;
+  border-radius: 0.5rem !important;
+}
+
+th {
+  background-color: var(--oc-bg-tertiary) !important;
+  color: var(--oc-text-primary) !important;
+  border-bottom: 1px solid var(--oc-border) !important;
+}
+
+td {
+  border-bottom: 1px solid var(--oc-border) !important;
+  color: var(--oc-text-secondary) !important;
+}
+
+/* Blockquotes */
+blockquote {
+  border-left: 4px solid var(--oc-accent) !important;
+  background-color: var(--oc-accent-subtle) !important;
+  color: var(--oc-text-secondary) !important;
+  padding: 1rem 1.25rem !important;
+  border-radius: 0 0.5rem 0.5rem 0 !important;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--oc-accent-subtle) !important;
+  color: var(--oc-accent) !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--oc-bg-secondary) !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--oc-border) !important;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--oc-text-tertiary) !important;
+}
