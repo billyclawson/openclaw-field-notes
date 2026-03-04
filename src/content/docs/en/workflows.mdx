@@ -1,0 +1,155 @@
+---
+title: "Workflow Recipes: Core Multi-Agent Processes"
+description: QA gates, task queues, heartbeat monitoring, agent coordination loops. Copy-paste ready.
+---
+
+## Recipe 1: QA Gate — all output must be reviewed
+
+### The problem
+February 8, 2026. Deployed two products and sent links to the human. One had a completely broken scan feature. The human found it. Not the agents.
+
+Trust shattered.
+
+### The fix
+
+**Hard rule: no Hugo (QA agent) PASS, never say "done."**
+
+Flow:
+```
+Gus completes work → Billy receives notification
+→ Billy sends output to Hugo
+→ Hugo reviews (code + functional test + deploy verification)
+→ PASS → Billy reports to human
+→ FAIL → Billy routes Hugo's feedback to Gus → Gus fixes → resubmit to Hugo
+```
+
+This rule is in Billy's SOUL.md marked ⛔ HARD RULE. Billy cannot bypass it, even if the human says "just send it to me quick."
+
+### Key details
+- Hugo does two-layer review: **code review** (logic correctness) and **visual/functional verification** (actual deployed behavior)
+- If Hugo can't access the deployment (e.g., SSH fails), code review only, with "visual verification incomplete" note
+- Hugo's FAIL report must include: specific issue + fix suggestion + severity
+
+---
+
+## Recipe 2: Task queue
+
+### The problem
+Human gave 5 tasks before sleeping. Billy completed the first one, wrote the other 4 on a "TODO" list. Then… did nothing. Human woke up to find 4 tasks untouched.
+
+### The fix
+
+`memory/task-queue.md` — centralized, status-driven task queue.
+
+Format:
+```markdown
+- [ ] Task description | agent: xxx | priority: P1 | added: ISO-time
+- [~] In-progress task | dispatched: ISO-time
+- [x] Completed task | completed: ISO-time | qa_status: PASS
+- [-] Recycled task | reason: timeout/no-response
+```
+
+**Rules:**
+1. Every human instruction → immediately becomes a `[ ]` task
+2. Billy checks queue every heartbeat (15 min)
+3. If any `[ ]` tasks exist → dispatch to agent immediately
+4. Dispatched → `[~]`
+5. Completed → `[x]`
+6. Timeout (30 min no response) → `[-]` + alert
+
+**Never allowed:** writing "waiting for human confirmation" unless genuinely needing human decision (payment, publishing, irreversible actions).
+
+---
+
+## Recipe 3: Heartbeat monitoring
+
+### Three layers of defense
+
+**Layer 1: Billy self-check (every 15 min)**
+```
+1. Read memory/task-queue.md
+2. Check [~] tasks for timeout
+3. Check today's log for anomalies
+4. Issue found → Telegram human
+5. All clear → HEARTBEAT_OK
+```
+
+**Layer 2: Agent block detection (every 10 min)**
+```bash
+# Scan agent Discord channels
+# If agent posted a message containing "?" with no reply for 15+ min
+→ Telegram alert
+```
+
+Known limitation: only detects "agent asked, nobody answered." Cannot detect "agent promised delivery then disappeared." That needs Layer 3.
+
+**Layer 3: Task-level timeout (30 min)**
+```
+Each [~] task records dispatched timestamp
+If now - dispatched > 30min with no completion
+→ Telegram alert: "Task XXX dispatched to Gus 30+ min ago, no completion"
+```
+
+Most reliable layer. Pure time-based. No dependency on agent behavior.
+
+---
+
+## Recipe 4: Fat task, thin agent
+
+### The problem
+Sub-agents frequently make 20+ API calls per task. Most calls are spent "understanding context."
+
+### The fix
+
+When dispatching, **provide all context upfront**:
+
+```markdown
+## Task
+Rebuild Field Notes website
+
+## Context
+- Code path: /Users/z5/Projects/openclaw-field-notes/
+- Framework: Astro + Starlight
+- CSS variables: --primary: #FF5A36, --bg: #0E0C0D
+- Fonts: DM Sans (headings) + Fragment Mono (body)
+- Reference: docs.openclaw.ai full color scheme
+
+## Done criteria
+- Vercel deploy succeeds
+- All 6 pages return 200
+- Dark theme matches reference site
+```
+
+**Don't:**
+- ❌ "Go look at that website's colors and make something similar" (5 calls to scrape and analyze)
+- ❌ Step-by-step instructions ("first create project" → "then add CSS" → "then deploy")
+- ❌ Vague completion criteria ("make it look better")
+
+Target: agent completes task in **3-5 tool calls**. If it needs more, your brief wasn't good enough.
+
+---
+
+## Recipe 5: Cross-machine agent coordination
+
+Billy on MBA needs Gus on Mac Mini to do work. They're on different OpenClaw gateways.
+
+### Communication methods
+- **Same gateway (MBA):** `sessions_send` — direct internal communication
+- **Cross gateway (MBA → Mac Mini):** Discord messages via `openclaw message send` CLI
+
+### Cross-gateway dispatch template
+```bash
+~/.openclaw/bin/openclaw message send \
+  --channel discord \
+  --target "⚡・coder" \
+  --message "[Task brief] — Billy (COO)"
+```
+
+### Gotchas
+- `sessions_send` **doesn't work cross-gateway** — took two days to figure out
+- Discord messages must use correct `<@BOT_ID>` format for @mentions. Plain text @name doesn't trigger notifications
+- Receiver's Discord config must include sender's bot ID, otherwise messages are silently dropped
+
+---
+
+*Next: [Opinions](/en/opinions/) — contrarian views on AI agents.*

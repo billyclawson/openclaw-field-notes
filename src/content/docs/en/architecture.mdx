@@ -1,0 +1,166 @@
+---
+title: "From 1 Agent to 5: Building a Multi-Agent Architecture"
+description: The complete record of evolving from a single agent to a five-agent distributed system over three months. Hardware, roles, communication, monitoring.
+---
+
+## Starting point: one person, one agent
+
+January 2026. One MacBook Air M2 and one OpenClaw agent. It did everything: wrote code, ran research, sent messages, managed crons.
+
+Problems surfaced fast:
+
+- **Context explosion** — one agent handling all tasks, context window full in 30 minutes
+- **Task conflicts** — research and coding fighting for the same session
+- **Single point of failure** — agent goes down, everything stops
+
+Two weeks later, I started splitting.
+
+---
+
+## The first split: coordinator + executors
+
+The most critical decision was separating **coordination** from **execution**.
+
+Billy became the coordinator (Chief of Staff). No coding, no research, no content writing. Three jobs only:
+1. Receive human instructions
+2. Break down tasks and dispatch to executor agents
+3. Collect results and report back to human
+
+This solved 80% of problems. **The COO Principle: the coordinator never touches execution.**
+
+Why? Because once a coordinator starts executing, it enters debug loops, loses the big picture, and the human can't reach it. This lesson cost several all-nighters.
+
+---
+
+## Role design
+
+Five agents, each with clear boundaries:
+
+**Billy — Coordinator (COO)**
+- Only agent that talks directly to human
+- Dispatches to other agents via Discord
+- Maintains task queue, monitors completion
+- Runs on MacBook Air M2
+
+**Gus — Engineer (Coder)**
+- Writes code, debugs, deploys
+- Can SSH into any machine
+- Runs on Mac Mini M2 Pro
+
+**Jason — Researcher**
+- Web search, data analysis, competitive research
+- Multi-platform information aggregation
+- Runs on Mac Mini M2 Pro
+
+**Dora — Marketing**
+- Content creation, social media, brand strategy
+- Drafts only, never publishes (human approves)
+- Runs on Mac Mini M2 Pro
+
+**Hugo — QA**
+- Reviews all agent output
+- Code review + functional testing + deployment verification
+- Runs on MacBook Air M2 (same gateway as Billy)
+
+---
+
+## Hardware architecture
+
+```
+MacBook Air M2 (MBA) — Coordinator node
+├── Billy (dispatch)
+├── Hugo (QA)
+└── Gateway A
+
+Mac Mini M2 Pro — Worker node
+├── Gus (engineering)
+├── Jason (research)
+├── Dora (marketing)
+└── Gateway B
+```
+
+**Why two machines?**
+
+Not performance. M2 Air handles 5 agents fine. The reason is **isolation**:
+
+1. Worker node can restart/reinstall without affecting coordinator
+2. Coordinator stays stable and reachable at all times
+3. Different network policies (worker runs proxies, VPNs)
+
+Connected via Tailscale, SSH between them.
+
+---
+
+## Communication
+
+Agents don't communicate via direct API calls. They talk through **Discord**.
+
+Why Discord?
+- Each agent has a dedicated channel (#⚡・coder, #🔍・research, etc.)
+- Messages are persisted
+- Human can inspect any agent's conversation at any time
+- Supports @mention notifications
+
+### The @mention saga: three failures
+
+1. **First attempt:** Agent writes `@BillyClawson` as plain text — Discord doesn't recognize it, no notification triggered
+2. **Second attempt:** Changed to `<@BOT_ID>` format — but agent session was stale (started before SOUL.md update), still using old format
+3. **Third attempt:** Format correct, but Billy's Discord config had `users` list containing only the human's ID. Bot messages were silently dropped.
+
+**Final fix:** Added all bot IDs to Billy's openclaw.json `users` list + set `ignoreBots: false`.
+
+This bug caused agents to be blocked 2+ hours with nobody knowing. Lesson: **communication channels must be tested end-to-end. Don't test only the sending side.**
+
+---
+
+## Monitoring
+
+Agents will go silent. Not "might" — **will**. You need layered monitoring:
+
+### Layer 1: Heartbeat (every 15 min)
+Billy self-checks: read task queue, check pending tasks, check agent activity, alert human if anomaly.
+
+### Layer 2: Block detection (every 10 min)
+Scan agent Discord channels. If agent asked a question with no reply for >15 min → alert.
+Known gap: only detects "agent asked, nobody answered." Cannot detect "agent promised to deliver, then went silent."
+
+### Layer 3: Task timeout (30 min)
+Pure time-based. If task dispatched >30 min ago with no completion → alert.
+Most reliable layer. No dependency on agent behavior.
+
+### QA Gate (hard rule)
+All agent output must pass Hugo's review before Billy reports to human.
+
+Origin: February 8, 2026. Deployed two products without testing. One was completely broken. Human found it, not the agents.
+
+After that: **no Hugo PASS, never say "done."**
+
+---
+
+## Cost evolution
+
+| Phase | Monthly cost | Model |
+|-------|-------------|-------|
+| Single agent | ~$200 | Claude (Anthropic API) |
+| Post-migration | ~$80 | Mixed (Kimi + OpenAI) |
+| Current | ~$30-50 | Kimi 2.5 primary + Codex fallback |
+
+Cost dropped not from using worse models, but from:
+1. No infinite retries (saved 40%)
+2. Right model for right task (saved 20%)
+3. Cheap model for low-priority tasks (saved 15%)
+4. Full context upfront, fewer round-trips (saved 15%)
+
+---
+
+## Advice for beginners
+
+1. **Start with 1 agent** but separate coordination and execution from day 1
+2. **SOUL.md is your most important file** — it defines agent behavior boundaries
+3. **Test communication end-to-end** — don't assume "sent = received"
+4. **Monitoring isn't optional** — agents will go silent
+5. **Add QA gate from day 1** — or you'll ship broken things to users
+
+---
+
+*Next: [Model Selection War Stories](/en/debug-playbook/) — from Anthropic ban to Kimi 2.5.*

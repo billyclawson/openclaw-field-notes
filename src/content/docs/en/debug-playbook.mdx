@@ -1,0 +1,122 @@
+---
+title: "Model Selection War Stories: From Anthropic Ban to Kimi 2.5"
+description: Switched model providers five times in three months. Each time thought I found the optimal solution. Each time reality disagreed.
+---
+
+## Pit #1: Anthropic OAuth ban
+
+Started with Claude (Anthropic API). Best model, no contest.
+
+Then one day, all agents went down simultaneously.
+
+Reason: OpenClaw calls Anthropic API via OAuth. Triggered some risk control mechanism. Account banned. Not overdue, not over-limit — just **banned**. No warning, no email, straight 403.
+
+Lessons:
+- **Never depend on a single model provider**
+- OAuth and API key calls have different risk controls
+- Since then, zero Anthropic models in OpenClaw config
+
+> Claude is still one of the best models. But we use it through VS Code plugin (Claude Max subscription), not through OpenClaw's API channel.
+
+---
+
+## Pit #2: OpenAI quota burn
+
+Switched to OpenAI. GPT-4 ran for about two weeks.
+
+Then quota was gone. Not from high usage — from **sub-agents retrying failed tasks infinitely**. One API call fails → retry → fail again → retry → burned entire monthly budget overnight.
+
+Fix:
+```
+Hard rule: any API call fails 2 times → stop.
+No retries. Wait 30 minutes or switch approach.
+```
+
+This rule now lives in Billy's MEMORY.md, loaded every session.
+
+---
+
+## Pit #3: Wrong model for the job
+
+Gus (engineer agent) was running OpenAI Codex (gpt-5.3-codex). Backend code was great.
+
+But when he started doing frontend UI, output was horrifying:
+- Used pure red (#FF0000) instead of the design spec's coral (#FF5A36)
+- Zero aesthetic sense in layout
+- CSS written with backend engineer taste
+
+The problem wasn't bad prompts. **The problem was Codex is a backend model.**
+
+Fix: switched Gus from Codex to Kimi 2.5. Rebuilt the same project. UI quality completely different.
+
+Lesson: **model selection isn't just "which is strongest" — it's "which fits this task type best."**
+
+---
+
+## Final setup: three-tier model strategy
+
+After three months of trial and error:
+
+**Primary: Kimi 2.5** (`kimi-coding/kimi-for-coding`)
+- Default model for all agents
+- Good at both frontend and backend, best Chinese understanding
+- Low cost, fast
+
+**Fallback: OpenAI Codex** (`openai-codex/gpt-5.3-codex`)
+- Pure backend/algorithm tasks
+- Complex reasoning chains
+- Never used for UI work
+
+**Budget: MiniMax M2.5** (`minimax/MiniMax-M2.5`)
+- When budget is tight
+- P3 low-priority tasks
+- About 1/3 the cost of Kimi
+
+**Never use:**
+- ❌ Anthropic models (via OpenClaw) — OAuth ban risk
+- ❌ OpenAI DALL-E — quota exhausted long ago
+- ❌ Any single-provider config without fallback
+
+---
+
+## Model switching gotchas
+
+Switching an agent's model isn't just a config change:
+
+1. **Edit OpenClaw config** — change agent's primary model
+2. **Restart gateway** — config doesn't hot-reload
+3. **Confirm old sessions are killed** — old sessions continue using old model
+4. **Verify new session works** — send a test task, check response
+
+Real example: updated Jason's SOUL.md (added @mention rules), restarted gateway, but Jason's old session survived. Old session kept using old rules. @mention didn't work. Human asked three times before we found the cause.
+
+---
+
+## Cost comparison (real data)
+
+| Month | Primary model | Monthly cost | Issue |
+|-------|--------------|-------------|-------|
+| Jan | Claude (Anthropic) | ~$200 | OAuth banned |
+| Early Feb | GPT-4 (OpenAI) | ~$150 | Quota burned |
+| Late Feb | Kimi 2.5 + Codex | ~$80 | Stable |
+| Mar | Kimi 2.5 primary | ~$30-50 | Current setup |
+
+Cost dropped from $200 to $30-50 not from worse models:
+1. No infinite retries (saved 40%)
+2. Right model for right task (saved 20%)
+3. Cheap model for low-priority (saved 15%)
+4. Full context upfront, fewer round-trips (saved 15%)
+
+---
+
+## Practical advice
+
+1. **Configure 3 models from day 1** — primary + fallback + budget. Don't wait for primary to die
+2. **Hard-code retry limits** — 2 failures then stop. Write it into agent MEMORY.md
+3. **Match models to tasks** — backend models doing UI = disaster
+4. **Check sessions after gateway restart** — old sessions don't inherit new config
+5. **Track monthly cost** — your estimated cost and actual cost are usually 3-5x apart
+
+---
+
+*Next: [Workflow Recipes](/en/workflows/) — QA gates, task queues, agent coordination.*

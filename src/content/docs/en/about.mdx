@@ -1,0 +1,54 @@
+---
+title: About this project
+description: Background, author, and goals of the OpenClaw Field Notes.
+---
+
+## What is this
+
+A handbook about **actually operating a multi-agent AI system**.
+
+Not a tutorial (official docs are great for that). Not a product review (Twitter has plenty). This is a real record from someone running a 5-agent OpenClaw system for three months.
+
+Every article is based on actual events, including specific error messages, debug processes, final solutions, and cost data.
+
+## Why
+
+Searched everywhere. This type of content barely exists.
+
+People share "I built XXX with AI." Nobody writes "here's what went wrong building XXX, how I fixed it, and what it cost."
+
+The latter is the actually valuable information.
+
+## Setup
+
+- **Hardware:** MacBook Air M2 + Mac Mini M2 Pro
+- **OS:** macOS, networked via Tailscale
+- **Agent framework:** OpenClaw
+- **Agents:** 5 (1 coordinator + 4 executors)
+- **Models:** Kimi 2.5 (primary) + OpenAI Codex (fallback) + MiniMax M2.5 (budget)
+- **Communication:** Discord (inter-agent) + Telegram (human interface)
+- **Running since:** January 2026
+
+## Content source
+
+This handbook is extracted from:
+- 391+ Billy (coordinator agent) session logs
+- 35+ memory files
+- All agents' SOUL.md evolution history
+- Real cost invoices and API call records
+
+A `session-extractor.py` script extracts key events from raw logs. Billy (the coordinator agent) organizes them into articles.
+
+## Languages
+
+All articles available in Chinese and English. Chinese is the primary language (author's thinking language). English is translated.
+
+## Open source
+
+Code on GitHub (pending token renewal for push). Content under CC BY-SA 4.0.
+
+PRs welcome. If you're also running a multi-agent system and have war stories, this project needs your experience.
+
+---
+
+> Contact info and discussion forum coming later.

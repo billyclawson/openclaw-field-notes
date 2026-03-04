@@ -1,0 +1,107 @@
+---
+title: "Opinions: Contrarian Views on AI Agents"
+description: Views formed after three months of running a multi-agent system. Not necessarily right, but paid for in real money and lost sleep.
+---
+
+## Opinion 1: Organization > Product
+
+Most people use AI agents to build **products**: an app, a website, a bot.
+
+I'm not building a product. I'm building an **organization**.
+
+A 24/7 digital company staffed by AI agents. Billy is COO, Gus is engineer, Jason is analyst, Dora is marketing, Hugo is QA. They have roles, processes, and performance standards.
+
+Why organization over product?
+
+- **Products become obsolete.** The app you build today might be irrelevant in 6 months.
+- **Organizations keep producing.** The same agent team can build unlimited products.
+- **Organizations self-improve.** Every failure gets written into SOUL.md. Next time it won't happen again. Product bug fixes are one-time. Organizational mechanism improvements are permanent.
+
+Spend 80% of time building organization (processes, monitoring, communication, QA). 20% on specific products. Not the reverse.
+
+---
+
+## Opinion 2: Agents don't need memory, they need documentation
+
+Many people research better agent memory: vector databases, RAG, long-term storage.
+
+My experience: **agent memory doesn't matter. What the agent reads at session start matters.**
+
+Billy's SOUL.md is 200+ lines. Defines role, rules, constraints, historical lessons. Loaded at every new session start. More reliable than any memory system.
+
+Why?
+- Memory is **passive** — agent might recall it, might not
+- Documentation is **active** — force-loaded every session, no "forgetting" possible
+- Memory **decays** — vector search relevance drops over time
+- Documentation is **deterministic** — what you write is what it reads, no probability
+
+I write all critical rules as ⛔ HARD RULE at the top of SOUL.md. Agent doesn't need to "remember" what it can't do — it's **told** every time it starts.
+
+---
+
+## Opinion 3: Failure is the system's most valuable input
+
+Every time an agent screws up, I do three things:
+
+1. **Ask the agent:** "Walk me through your reasoning" — understand why it made that decision
+2. **Find root cause:** insufficient context? Wrong tool? Model capability gap?
+3. **Write a mechanism:** add a rule to SOUL.md or MEMORY.md to prevent the same class of failure
+
+Never just "retry." Every failure must produce a new rule.
+
+Examples:
+- Gus deployed broken product → added QA Gate rule
+- Billy's context filled up and froze → added context monitor cron
+- API calls retried infinitely → added 2-failure stop rule
+- Agent went silent for hours → added three-layer monitoring
+
+After three months, roughly 30% of SOUL.md content was distilled from failures. These rules are worth more than any individual task output.
+
+**Harness Engineering core:** every failure becomes a permanent mechanism, driving recurrence probability toward zero.
+
+---
+
+## Opinion 4: Human attention is the scarcest resource
+
+Five agents running simultaneously. Theoretically 5x productivity.
+
+In practice, the bottleneck is **human attention**.
+
+- 5 agents reporting progress simultaneously → human can't process
+- 3 agents stuck waiting for human reply → human has decision paralysis
+- During 12 waking hours, human spends most time handling agent issues, not thinking strategy
+
+Solutions:
+
+1. **Billy is the only interface** — human only talks to Billy. Billy handles dispatch and aggregation
+2. **Agents shouldn't ask questions** — if the brief is good, no follow-up needed. If follow-up is needed, the brief was bad
+3. **Automated decisions** — P2/P3 tasks, agents decide how to execute. Only P0/P1 need human input
+4. **Batch reporting** — don't report after every completed task. Batch 3-5 together
+
+Goal: human spends 30 minutes/day managing agents. Rest of time on things only humans can do (creativity, strategy, relationships).
+
+Not there yet. Working toward it.
+
+---
+
+## Opinion 5: Speed is worthless, reliability is everything
+
+The AI world is obsessed with speed: build an app in 5 minutes, generate an article in 10 seconds.
+
+After three months of multi-agent operations: **speed is an illusion. Reliability is real.**
+
+An agent builds something in 5 minutes with a bug. Debugging takes 2 hours. Net negative.
+
+An agent builds something in 30 minutes, correct first time. Saves all subsequent fix time. Net positive.
+
+Therefore:
+- Better to spend 20 minutes writing a brief than have the agent redo it 3 times
+- Better to run full QA adding 10 minutes than send the human a broken link
+- Better to use a slightly more expensive model that gets it right than use a cheap model 5 times
+
+**"Get it right the first time or start over. Fixing old code is more wasteful than starting new."**
+— Direct quote from the human. He was right.
+
+---
+
+*Final page: [About](/en/about/) — who built this and why.*

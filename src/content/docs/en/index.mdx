@@ -1,0 +1,51 @@
+---
+title: OpenClaw Field Notes
+description: One person + five AI agents = a 24/7 digital company. Real problems, real solutions, real costs.
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why this exists
+
+I've been running OpenClaw for three months. Scaled from one agent to five, running across two Macs, executing tasks 24/7.
+
+The number of problems I hit along the way exceeds the amount of code I've written.
+
+Online content about OpenClaw falls into two categories: official docs (what you **can** do) and Twitter screenshots (what others **did**). Almost nobody writes about: **what actually goes wrong in practice, and how to fix it.**
+
+This handbook fills that gap.
+
+---
+
+## Navigation
+
+<CardGrid>
+  <Card title="Architecture" icon="setting">
+    The complete evolution from 1 agent to 5. Hardware, roles, communication, monitoring.
+    [Read →](/en/architecture/)
+  </Card>
+  <Card title="Debug Playbook" icon="warning">
+    Model selection disasters, API quota burns, agents going silent for 6 hours… each with a fix.
+    [Read →](/en/debug-playbook/)
+  </Card>
+  <Card title="Workflow Recipes" icon="rocket">
+    QA gates, task queues, heartbeat monitoring, cross-machine coordination. Copy-paste ready.
+    [Read →](/en/workflows/)
+  </Card>
+  <Card title="Opinions" icon="star">
+    Contrarian views on AI agents: why organization > product, why agents don't need memory.
+    [Read →](/en/opinions/)
+  </Card>
+</CardGrid>
+
+---
+
+## Setup at a glance
+
+- **Hardware:** MacBook Air M2 (coordinator) + Mac Mini M2 Pro (workers)
+- **Agents:** 5 — Billy (dispatch), Gus (engineering), Jason (research), Dora (marketing), Hugo (QA)
+- **Communication:** Discord (inter-agent) + Telegram (human interface)
+- **Models:** Kimi 2.5 primary, OpenAI Codex fallback, MiniMax budget tier
+- **Monthly cost:** ~$30-50 (down from $200+)
+
+> Everything here is based on real operational data. Not demos. Not theory.
