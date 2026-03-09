@@ -382,11 +382,170 @@ button:focus-visible,
 }
 
 /* ===== Mobile Responsive ===== */
-@media (max-width: 50rem) {
-  h1 {
-    font-size: 1.75rem;
+
+/* Tablet breakpoint */
+@media (max-width: 72rem) {
+  .right-sidebar,
+  aside.right-sidebar {
+    display: none;
   }
+}
+
+/* Mobile breakpoint */
+@media (max-width: 50rem) {
+  :root,
+  :root[data-theme="light"],
+  :root[data-theme="dark"] {
+    --sl-text-base: 0.9375rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+
   h2 {
     font-size: 1.25rem;
+    margin-top: 2rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    margin-top: 1.5rem;
+  }
+
+  .content-panel h1 {
+    font-size: 1.5rem;
+  }
+
+  /* Tighter content padding on mobile */
+  .content-panel,
+  .main-pane {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Tables scroll horizontally instead of breaking layout */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  /* Code blocks: smaller text, horizontal scroll */
+  pre {
+    padding: 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+  }
+
+  pre code {
+    font-size: 0.8rem;
+  }
+
+  code {
+    font-size: 0.825em;
+    word-break: break-word;
+  }
+
+  /* Blockquotes: tighter padding */
+  blockquote {
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+  }
+
+  /* Cards: single column, tighter spacing */
+  .card {
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  /* Pagination: stack vertically */
+  .pagination-links {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .pagination-links a {
+    width: 100%;
+  }
+
+  /* Lists: tighter indent */
+  ul, ol {
+    padding-left: 1.25rem;
+  }
+
+  /* Horizontal rules */
+  hr {
+    margin: 1.5rem 0;
+  }
+
+  /* Mobile header: compact */
+  .header,
+  header.header {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .site-title {
+    font-size: 0.9rem;
+  }
+}
+
+/* Small phone breakpoint */
+@media (max-width: 30rem) {
+  h1 {
+    font-size: 1.3rem;
+  }
+
+  h2 {
+    font-size: 1.125rem;
+  }
+
+  .content-panel h1 {
+    font-size: 1.3rem;
+  }
+
+  .content-panel,
+  .main-pane {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  /* Even tighter card padding */
+  .card {
+    padding: 0.75rem;
+  }
+
+  /* Table cells: smaller padding */
+  th, td {
+    padding: 0.5rem 0.625rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Touch-friendly tap targets */
+@media (pointer: coarse) {
+  .sidebar a,
+  .sidebar li a,
+  #starlight__sidebar a {
+    padding: 0.625rem 1rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .pagination-links a {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* Prevent zoom on input focus (iOS) */
+@media screen and (max-width: 50rem) {
+  input, select, textarea {
+    font-size: 16px;
   }
 }
