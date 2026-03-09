@@ -70,6 +70,11 @@ export default defineConfig({
       sidebar: [
         { label: "首页", link: "/", translations: { en: "Home" } },
         {
+          label: "🚀 新手上路",
+          link: "/getting-started/",
+          translations: { en: "Getting Started" },
+        },
+        {
           label: "架构篇",
           link: "/architecture/",
           translations: { en: "Architecture" },

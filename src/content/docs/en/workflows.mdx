@@ -1,47 +1,79 @@
 ---
 title: "Workflow Recipes: Core Multi-Agent Processes"
-description: QA gates, task queues, heartbeat monitoring, agent coordination loops. Copy-paste ready.
+description: QA gates, task queues, heartbeat monitoring, memory management, cross-gateway coordination, sub-agent efficiency. Copy-paste ready configs. Tested on OpenClaw 2026.3.2.
 ---
 
-## Recipe 1: QA Gate — all output must be reviewed
+## Recipe 1: Standard task flow
 
-### The problem
-February 8, 2026. Deployed two products and sent links to the human. One had a completely broken scan feature. The human found it. Not the agents.
+Every task's complete path from human to delivery:
 
-Trust shattered.
-
-### The fix
-
-**Hard rule: no Hugo (QA agent) PASS, never say "done."**
-
-Flow:
 ```
-Gus completes work → Billy receives notification
-→ Billy sends output to Hugo
-→ Hugo reviews (code + functional test + deploy verification)
-→ PASS → Billy reports to human
-→ FAIL → Billy routes Hugo's feedback to Gus → Gus fixes → resubmit to Hugo
+Human (Telegram) → Billy receives
+    ↓
+Billy writes Task Brief (Goal / Context / Definition of Done / Priority)
+    ↓
+Billy dispatches to agent Discord channel
+    ↓
+Agent executes → @mentions Billy on completion
+    ↓
+Billy receives result → dispatches to Hugo (QA)
+    ↓
+Hugo reviews → PASS / FAIL
+    ↓
+PASS → Billy reports to human
+FAIL → feedback to original agent → fix → Hugo re-reviews → loop until PASS
 ```
 
-This rule is in Billy's SOUL.md marked ⛔ HARD RULE. Billy cannot bypass it, even if the human says "just send it to me quick."
-
-### Key details
-- Hugo does two-layer review: **code review** (logic correctness) and **visual/functional verification** (actual deployed behavior)
-- If Hugo can't access the deployment (e.g., SSH fails), code review only, with "visual verification incomplete" note
-- Hugo's FAIL report must include: specific issue + fix suggestion + severity
+**Key constraints:**
+- Billy never touches execution (COO Principle)
+- No Hugo PASS = never say "done"
+- Every step logged to `memory/YYYY-MM-DD.md`
 
 ---
 
-## Recipe 2: Task queue
+## Recipe 2: QA Gate
 
-### The problem
-Human gave 5 tasks before sleeping. Billy completed the first one, wrote the other 4 on a "TODO" list. Then… did nothing. Human woke up to find 4 tasks untouched.
+QA isn't optional. It's hard-coded into the system.
 
-### The fix
+### Hugo's review checklist
 
-`memory/task-queue.md` — centralized, status-driven task queue.
+**Code deliveries:**
+1. Code logic correct
+2. No security vulnerabilities (hardcoded API keys, unvalidated input)
+3. Build passes
+4. Deployment succeeds (HTTP 200, not 404)
+5. **Core features work** (not just homepage loads — this is a direct result of the Feb 8 incident)
 
-Format:
+**Content deliveries:**
+1. Facts accurate
+2. Grammar/spelling
+3. Format matches target platform
+4. Sensitive info check (no leaked API keys, personal info)
+
+### QA failure flow
+
+```
+Hugo FAIL → Billy extracts failure reason
+    ↓
+Billy creates fix Brief (with Hugo's specific feedback)
+    ↓
+Routes back to original agent
+    ↓
+Agent fixes → resubmits
+    ↓
+Hugo second review
+    ↓
+If fails again → escalate to human
+```
+
+**Hard rule:** Same task fails Hugo twice consecutively → escalate to human, stop cycling. Infinite QA loops are as harmful as infinite API retries.
+
+---
+
+## Recipe 3: Task queue
+
+All tasks tracked in `memory/task-queue.md`:
+
 ```markdown
 - [ ] Task description | agent: xxx | priority: P1 | added: ISO-time
 - [~] In-progress task | dispatched: ISO-time
@@ -49,19 +81,31 @@ Format:
 - [-] Recycled task | reason: timeout/no-response
 ```
 
-**Rules:**
+### Priority levels
+
+| Level | Meaning | Behavior |
+|-------|---------|----------|
+| P0 | Human explicitly requested | Needs human approval before execution |
+| P1 | Important | Notify human then execute |
+| P2 | Automated | Execute directly |
+| P3 | Low-risk | Execute directly, use budget model |
+
+### Queue rules
+
 1. Every human instruction → immediately becomes a `[ ]` task
 2. Billy checks queue every heartbeat (15 min)
-3. If any `[ ]` tasks exist → dispatch to agent immediately
+3. If any `[ ]` tasks exist → dispatch immediately
 4. Dispatched → `[~]`
 5. Completed → `[x]`
 6. Timeout (30 min no response) → `[-]` + alert
 
-**Never allowed:** writing "waiting for human confirmation" unless genuinely needing human decision (payment, publishing, irreversible actions).
+**Never allowed:** Writing "waiting for human confirmation" unless genuinely needing human decision (payment, publishing, irreversible actions).
+
+**Origin story:** February 11, 2026. Sub-agent finished at 7:14 AM. Remaining tasks written on a "Still TODO" list. Not executed. Billy idle for 4 hours. Human woke up to find nothing done.
 
 ---
 
-## Recipe 3: Heartbeat monitoring
+## Recipe 4: Heartbeat monitoring
 
 ### Three layers of defense
 
@@ -75,11 +119,7 @@ Format:
 ```
 
 **Layer 2: Agent block detection (every 10 min)**
-```bash
-# Scan agent Discord channels
-# If agent posted a message containing "?" with no reply for 15+ min
-→ Telegram alert
-```
+Scan agent Discord channels. If agent posted a question with no reply for 15+ min → alert.
 
 Known limitation: only detects "agent asked, nobody answered." Cannot detect "agent promised delivery then disappeared." That needs Layer 3.
 
@@ -92,52 +132,42 @@ If now - dispatched > 30min with no completion
 
 Most reliable layer. Pure time-based. No dependency on agent behavior.
 
----
+### Agent offline diagnosis flow
 
-## Recipe 4: Fat task, thin agent
+When timeout detected:
 
-### The problem
-Sub-agents frequently make 20+ API calls per task. Most calls are spent "understanding context."
-
-### The fix
-
-When dispatching, **provide all context upfront**:
-
-```markdown
-## Task
-Rebuild Field Notes website
-
-## Context
-- Code path: /Users/z5/Projects/openclaw-field-notes/
-- Framework: Astro + Starlight
-- CSS variables: --primary: #FF5A36, --bg: #0E0C0D
-- Fonts: DM Sans (headings) + Fragment Mono (body)
-- Reference: docs.openclaw.ai full color scheme
-
-## Done criteria
-- Vercel deploy succeeds
-- All 6 pages return 200
-- Dark theme matches reference site
+```
+Step 1: Check agent logs
+    ├── Error logs → Identify error type
+    │   ├── API error (429/403/500) → Switch model or wait
+    │   ├── Tool call timeout → Likely SSH/network issue
+    │   └── Context overflow → Needs new session
+    └── Logs normal → Agent may just be slower than expected
+        ↓
+Step 2: Telegram alert to human
+    Include: who, what task, how long, log summary
+        ↓
+Step 3: Human decides
+    ├── Retry → New session, re-dispatch
+    ├── Switch agent → Dispatch to different capable agent
+    ├── Switch model → Same agent, more suitable model
+    └── Manual → Human handles it
 ```
 
-**Don't:**
-- ❌ "Go look at that website's colors and make something similar" (5 calls to scrape and analyze)
-- ❌ Step-by-step instructions ("first create project" → "then add CSS" → "then deploy")
-- ❌ Vague completion criteria ("make it look better")
-
-Target: agent completes task in **3-5 tool calls**. If it needs more, your brief wasn't good enough.
-
 ---
 
-## Recipe 5: Cross-machine agent coordination
+## Recipe 5: Cross-gateway coordination
 
-Billy on MBA needs Gus on Mac Mini to do work. They're on different OpenClaw gateways.
+MBA (Billy + Hugo) and Mac Mini (Gus + Jason + Dora) on different gateways. `sessions_send` only works within the same gateway.
 
-### Communication methods
-- **Same gateway (MBA):** `sessions_send` — direct internal communication
-- **Cross gateway (MBA → Mac Mini):** Discord messages via `openclaw message send` CLI
+### Methods
+
+- **Billy → Gus/Jason/Dora:** Discord messages
+- **Gus/Jason/Dora → Billy:** Discord @mention
+- **Billy → Hugo:** `sessions_send` (same gateway, direct)
 
 ### Cross-gateway dispatch template
+
 ```bash
 ~/.openclaw/bin/openclaw message send \
   --channel discord \
@@ -145,10 +175,129 @@ Billy on MBA needs Gus on Mac Mini to do work. They're on different OpenClaw gat
   --message "[Task brief] — Billy (COO)"
 ```
 
-### Gotchas
-- `sessions_send` **doesn't work cross-gateway** — took two days to figure out
-- Discord messages must use correct `<@BOT_ID>` format for @mentions. Plain text @name doesn't trigger notifications
-- Receiver's Discord config must include sender's bot ID, otherwise messages are silently dropped
+### Cross-gateway gotchas
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| `sessions_send` not working | Only works within same gateway | Use Discord messages |
+| @mention not triggering | Plain text @name, not `<@BOT_ID>` | Use correct Discord ID format |
+| Messages silently dropped | Receiver `users` list missing bot ID | Add all bot IDs + `ignoreBots: false` |
+| Config changes not taking effect | Session cached old config | Must `openclaw gateway restart` after config changes |
+
+---
+
+## Recipe 6: Memory management & optimization
+
+### Memory architecture
+
+```
+memory/
+├── MEMORY.md           # Long-term decision rules (manual, <200 lines)
+├── task-queue.md       # Current task queue
+├── improvements-log.md # Improvement log (updated after each failure)
+├── 2026-01-25.md       # Daily logs
+├── ...
+└── 2026-03-09.md
+```
+
+### Three-layer memory strategy
+
+| Layer | File | Content | Loading |
+|-------|------|---------|---------|
+| **L1: Hard rules** | SOUL.md | Role definition, behavior constraints, hard rules | Auto-loaded every session start |
+| **L2: Working memory** | memory/YYYY-MM-DD.md | Today's tasks, decisions, progress | Auto-read every heartbeat |
+| **L3: Long-term rules** | MEMORY.md | Cross-day decisions, lessons, config rules | Auto-loaded every session start |
+
+### Context management in practice
+
+```
+# SOUL.md rules:
+# ⛔ HARD RULE: When context usage > 60%:
+# 1. Save current state to memory/YYYY-MM-DD.md
+# 2. Execute /compact
+# 3. Continue working
+# ⛔ HARD RULE: Never let context exceed 70%
+```
+
+### Compaction strategy
+
+**When to trigger Compaction:**
+- Context usage hits 60% → auto-trigger
+- After task completion → archive results to daily log, then compact
+- Session running >2 hours → proactive compact
+
+**Compaction isn't a built-in OpenClaw feature** — it's implemented via the `/compact` command or auto-trigger rules in SOUL.md:
+
+1. `/compact` tells the model to summarize the conversation, discarding early details
+2. You can also trigger similar behavior via cron
+3. Critical info should be saved to memory files before compacting
+
+### Why not vector databases / RAG?
+
+We tried embedding-based memory retrieval but found:
+
+1. **Unreliable recall** — semantic search recall rate isn't high enough, critical info may not be retrieved
+2. **Noisy results** — "relevant" content mixed with irrelevant info, diluting useful context
+3. **Maintenance overhead** — requires additional infrastructure (vector DB, embedding API)
+4. **Non-deterministic** — you don't know what the agent will retrieve each time
+
+**Our alternative:** SOUL.md + MEMORY.md = deterministic documents loaded every session. 100% reliable.
+
+---
+
+## Recipe 7: Sub-agent efficiency
+
+### Fat task, thin agent
+
+Provide all context upfront. Target: each sub-agent completes in **3-5 tool calls**.
+
+### Task brief template
+
+```markdown
+## Task
+[One sentence describing the goal]
+
+## Context
+- Relevant file paths: [specific paths]
+- Background: [what the agent needs to know]
+- References: [links or files]
+
+## Done Criteria
+- [ ] Specific completion standard 1
+- [ ] Specific completion standard 2
+- [ ] Specific completion standard 3
+
+## Constraints
+- Priority: P[0-3]
+- Deadline: [time]
+- Model: [recommended model]
+```
+
+### Script-first principle
+
+If a task involves API calls, write a script first then run it. Don't let agents make API calls one by one.
+
+### Retry discipline
+
+- Infrastructure failure (API timeout, 429) → max 2 retries
+- After 2 → stop 30 minutes or change approach
+- Never retry infinitely
+
+**Cost of this rule:** One sub-agent once spent 30 minutes retrying an exhausted API. 30 minutes = zero output.
+
+> **Further reading:** See [Anthropic's agent design best practices](https://docs.anthropic.com/en/docs/build-with-claude/agentic) and [OpenAI's agent building guide](https://platform.openai.com/docs/guides/agents).
+
+---
+
+## Version compatibility
+
+All configs and commands tested on **OpenClaw 2026.3.2**.
+
+| Your version | Notes |
+|-------------|-------|
+| 2026.2.x | Most configs compatible, `openclaw message send` params may differ slightly |
+| 2026.3.x | This handbook fully applies |
+| 2026.4.x+ | Check [OpenClaw Changelog](https://docs.openclaw.ai/changelog) for breaking changes |
 
 ---
 

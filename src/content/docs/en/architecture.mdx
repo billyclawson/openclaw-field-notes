@@ -1,6 +1,6 @@
 ---
 title: "From 1 Agent to 5: Building a Multi-Agent Architecture"
-description: The complete record of evolving from a single agent to a five-agent distributed system over three months. Hardware, roles, communication, monitoring.
+description: The complete record of evolving from a single agent to a five-agent distributed system over three months. Includes hardware, role design, communication, monitoring, and a decision tree for when to add agents. Tested on OpenClaw 2026.3.2.
 ---
 
 ## Starting point: one person, one agent
@@ -30,22 +30,57 @@ This solved 80% of problems. **The COO Principle: the coordinator never touches 
 
 Why? Because once a coordinator starts executing, it enters debug loops, loses the big picture, and the human can't reach it. This lesson cost several all-nighters.
 
+> **Further reading:** This pattern is called "Orchestrator-Worker" architecture in multi-agent systems. Similar designs appear in [Microsoft AutoGen](https://github.com/microsoft/autogen) and [CrewAI](https://github.com/crewAIInc/crewAI), but our implementation is simpler — no framework, just native OpenClaw capabilities.
+
 ---
 
-## Role design
+## Role design: why 5 agents, not 3 or 7?
 
-Five agents, each with clear boundaries:
+Five agents, each with clear boundaries. This number wasn't planned — it was driven by real needs:
+
+| Order | Agent | Role | Why needed |
+|-------|-------|------|------------|
+| 1st | Billy | Coordinator (COO) | Single agent doing everything caused context overflow — had to separate coordination |
+| 2nd | Gus | Engineer (Coder) | Coding tasks were most frequent, needed a dedicated agent |
+| 3rd | Hugo | QA | Feb 8 broken deployment incident forced a quality gate |
+| 4th | Jason | Research | Research tasks conflicting with Gus's coding sessions |
+| 5th | Dora | Marketing | Content creation needs different models and prompt styles |
+
+**Key insight:** Each new agent was added because of a specific problem, not pre-planned. If your scenario doesn't need 5, **don't force it**.
+
+### When do you need multi-agent? (Decision tree)
+
+```
+Is your single agent enough?
+├── Yes → Don't add more. Keep going.
+└── No → Where's it falling short?
+    ├── Context frequently overflowing → Split: coordinator + executor
+    ├── Different task types conflicting → Split agents by task type
+    ├── Output quality unstable → Add a QA agent
+    ├── Too many tasks queuing up → Add more executor agents
+    └── None of the above → Problem is likely in SOUL.md or model selection, not agent count
+```
+
+**Rules of thumb:**
+- **1 agent** handles most personal projects
+- **2-3** for clear division needs (e.g., one for coding + one for QA)
+- **5+** only when you truly have multiple concurrent task types
+- **Beyond 7** management overhead skyrockets unless you have a mature orchestration system
+
+### Detailed agent configs
 
 **Billy — Coordinator (COO)**
 - Only agent that talks directly to human
 - Dispatches to other agents via Discord
 - Maintains task queue, monitors completion
 - Runs on MacBook Air M2
+- **Core SOUL.md rule:** Never execute tasks, write code, or do research. Only dispatch.
 
 **Gus — Engineer (Coder)**
 - Writes code, debugs, deploys
 - Can SSH into any machine
 - Runs on Mac Mini M2 Pro
+- **Model selection:** Kimi 2.5 for frontend, Codex for backend/algorithms (see [Debug Playbook #3](/en/debug-playbook/#pit-3-wrong-model-for-the-job))
 
 **Jason — Researcher**
 - Web search, data analysis, competitive research
@@ -54,13 +89,14 @@ Five agents, each with clear boundaries:
 
 **Dora — Marketing**
 - Content creation, social media, brand strategy
-- Drafts only, never publishes (human approves)
+- **Drafts only, never publishes** (human approves) — hard rule
 - Runs on Mac Mini M2 Pro
 
 **Hugo — QA**
 - Reviews all agent output
 - Code review + functional testing + deployment verification
 - Runs on MacBook Air M2 (same gateway as Billy)
+- **Why same gateway:** `sessions_send` only works within the same gateway. Hugo needs fast response to Billy's QA requests.
 
 ---
 
@@ -79,15 +115,44 @@ Mac Mini M2 Pro — Worker node
 └── Gateway B
 ```
 
-**Why two machines?**
+### Why two machines?
 
 Not performance. M2 Air handles 5 agents fine. The reason is **isolation**:
 
-1. Worker node can restart/reinstall without affecting coordinator
-2. Coordinator stays stable and reachable at all times
-3. Different network policies (worker runs proxies, VPNs)
+1. **Stability isolation** — worker node can restart/reinstall without affecting coordinator
+2. **Reachability guarantee** — coordinator stays stable and reachable at all times
+3. **Network policy isolation** — worker runs proxies, VPNs; coordinator uses direct connection
+4. **Resource isolation** — coding tasks consuming CPU/memory won't affect dispatch responsiveness
 
 Connected via Tailscale, SSH between them.
+
+### Single vs multi-machine: how to choose
+
+| Scenario | Recommendation | Reason |
+|----------|---------------|--------|
+| 1-3 agents | Single machine | No need for added complexity |
+| 3-5 agents | Depends | If tasks frequently max CPU or need different network policies, consider dual-machine |
+| 5+ agents | Dual machine | Isolation stability benefits outweigh management cost |
+| Need 24/7 uptime | Must use dual | Single machine restart = everything down |
+
+### Multi-machine communication setup
+
+```bash
+# 1. Install Tailscale on both machines
+curl -fsSL https://tailscale.com/install.sh | sh
+tailscale up
+
+# 2. Verify connectivity
+ping mac-mini.tailnet  # Should respond
+
+# 3. Configure passwordless SSH
+ssh-copy-id user@mac-mini.tailnet
+
+# 4. Test cross-machine OpenClaw commands
+ssh user@mac-mini.tailnet "openclaw status"
+```
+
+> **Gotcha:** Tailscale may disconnect after macOS sleep. Disable auto-sleep in System Settings → Energy, or use `caffeinate -d` to keep the machine awake.
 
 ---
 
@@ -100,16 +165,60 @@ Why Discord?
 - Messages are persisted
 - Human can inspect any agent's conversation at any time
 - Supports @mention notifications
+- **Free, no API call limits**
+
+### Communication path
+
+```
+Human (Telegram) → Billy (MBA)
+Billy → Discord #⚡・coder → Gus (Mac Mini)
+Gus completes → Discord @Billy → Billy (MBA)
+Billy → Hugo (MBA, sessions_send)
+Hugo QA PASS → Billy → Human (Telegram)
+```
 
 ### The @mention saga: three failures
 
-1. **First attempt:** Agent writes `@BillyClawson` as plain text — Discord doesn't recognize it, no notification triggered
-2. **Second attempt:** Changed to `<@BOT_ID>` format — but agent session was stale (started before SOUL.md update), still using old format
-3. **Third attempt:** Format correct, but Billy's Discord config had `users` list containing only the human's ID. Bot messages were silently dropped.
+This looked simple but took three days to fix. Full story:
 
-**Final fix:** Added all bot IDs to Billy's openclaw.json `users` list + set `ignoreBots: false`.
+**Failure 1: Plain text @mention**
 
-This bug caused agents to be blocked 2+ hours with nobody knowing. Lesson: **communication channels must be tested end-to-end. Don't test only the sending side.**
+Agent writes `@BillyClawson` in Discord — plain text, not recognized as a mention, no notification.
+
+```
+❌ @BillyClawson task complete
+✅ <@1234567890> task complete  ← Need Discord user ID format
+```
+
+**Failure 2: Session cached old config**
+
+Updated SOUL.md but agent's old session didn't refresh — still using old format.
+
+**Root cause:** OpenClaw sessions load SOUL.md at creation time and don't auto-refresh. Must restart sessions after SOUL.md changes.
+
+```bash
+# Correct approach: after changing SOUL.md
+openclaw gateway restart  # Restart gateway, all sessions recreated
+```
+
+> **Community note:** This issue is commonly discussed — search [GitHub: "session stale config"](https://github.com/anthropics/claude-code/issues?q=session+stale+config) for more solutions.
+
+**Failure 3: Receiver config missing bot IDs**
+
+Correct format, fresh session. But Billy's `openclaw.json` `users` list only had the human's Discord ID. Bot messages silently dropped.
+
+```json
+{
+  "discord": {
+    "users": ["human_discord_id", "gus_bot_id", "jason_bot_id"],
+    "ignoreBots": false
+  }
+}
+```
+
+**Final fix:** Added all bot IDs + set `ignoreBots: false`.
+
+> **Lesson:** Communication channels must be tested end-to-end. Don't test only the sending side. This bug caused agents to be blocked 2+ hours with nobody knowing.
 
 ---
 
@@ -128,6 +237,24 @@ Known gap: only detects "agent asked, nobody answered." Cannot detect "agent pro
 Pure time-based. If task dispatched >30 min ago with no completion → alert.
 Most reliable layer. No dependency on agent behavior.
 
+### Advanced: Independent Watchdog
+
+For 24/7 systems, deploy a monitoring process **outside** of OpenClaw:
+
+```bash
+#!/bin/bash
+while true; do
+  if ! openclaw status | grep -q "RUNNING"; then
+    curl -X POST "YOUR_WEBHOOK_URL" \
+      -H "Content-Type: application/json" \
+      -d '{"text":"⚠️ OpenClaw gateway is DOWN!"}'
+  fi
+  sleep 300
+done
+```
+
+> **Why independent?** If OpenClaw itself crashes, its internal monitoring crashes too. An independent process can still alert when the entire system is down.
+
 ### QA Gate (hard rule)
 All agent output must pass Hugo's review before Billy reports to human.
 
@@ -139,17 +266,17 @@ After that: **no Hugo PASS, never say "done."**
 
 ## Cost evolution
 
-| Phase | Monthly cost | Model |
-|-------|-------------|-------|
-| Single agent | ~$200 | Claude (Anthropic API) |
-| Post-migration | ~$80 | Mixed (Kimi + OpenAI) |
-| Current | ~$30-50 | Kimi 2.5 primary + Codex fallback |
+| Phase | Monthly cost | Model | Notes |
+|-------|-------------|-------|-------|
+| Single agent (Jan) | ~$200 | Claude (Anthropic API) | Pay-per-use, infinite retries |
+| Post-migration (early Feb) | ~$80 | Mixed (Kimi + OpenAI) | Switched to subscription, added retry limits |
+| Current (Mar) | ~$30-50 | Kimi 2.5 primary + Codex fallback | Task tiering + budget model fallback |
 
 Cost dropped not from using worse models, but from:
-1. No infinite retries (saved 40%)
-2. Right model for right task (saved 20%)
-3. Cheap model for low-priority tasks (saved 15%)
-4. Full context upfront, fewer round-trips (saved 15%)
+1. **Fewer wasted calls** — full context upfront, fewer round-trips (saved 15%)
+2. **Task tiering** — cheap model for P3, best model for P0 (saved 15%)
+3. **No debug loops** — 2 failures then stop, no infinite retries (saved 40%)
+4. **Model-task matching** — Kimi for frontend, Codex for backend (saved 20%)
 
 ---
 
@@ -160,6 +287,9 @@ Cost dropped not from using worse models, but from:
 3. **Test communication end-to-end** — don't assume "sent = received"
 4. **Monitoring isn't optional** — agents will go silent
 5. **Add QA gate from day 1** — or you'll ship broken things to users
+6. **Use single agent for one week first** — understand its behavior before scaling
+
+> **New to OpenClaw?** Start with [Getting Started](/en/getting-started/) — complete walkthrough from installation to first task.
 
 ---
 

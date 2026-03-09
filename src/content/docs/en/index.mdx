@@ -1,6 +1,6 @@
 ---
 title: OpenClaw Field Notes
-description: One person + five AI agents = a 24/7 digital company. Real problems, real solutions, real costs.
+description: One person + five AI agents = a 24/7 digital company. Real problems, real solutions, real costs. Tested on OpenClaw 2026.3.x.
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
@@ -17,24 +17,54 @@ This handbook fills that gap.
 
 ---
 
+## Reading path
+
+Different starting points for different stages:
+
+### 🟢 Day 0 — Just installed OpenClaw, not sure what's next
+
+→ Start with **[Getting Started](/en/getting-started/)** — step-by-step from zero to your first working agent.
+
+### 🟡 Day 7 — Single agent running, want to add more
+
+→ Read **[Architecture](/en/architecture/)** — when to split? How to go from 1 to 5? Hardware choices?
+
+### 🔴 Day 30 — Multi-agent running for a while, problems appearing
+
+→ Read **[Debug Playbook](/en/debug-playbook/)** and **[Workflow Recipes](/en/workflows/)** — specific problems, specific solutions, specific configs.
+
+### 🚨 Something broke — Agent down / API errors / nothing happening
+
+→ Jump to **[Emergency Triage](/en/debug-playbook/#emergency-triage-quick-diagnosis)** — three steps to locate the problem.
+
+---
+
 ## Navigation
 
 <CardGrid>
+  <Card title="🚀 Getting Started" icon="rocket">
+    From zero: installation, configuration, SOUL.md template, first task. Must-read for beginners.
+    [Read →](/en/getting-started/)
+  </Card>
   <Card title="Architecture" icon="setting">
-    The complete evolution from 1 agent to 5. Hardware, roles, communication, monitoring.
+    The complete evolution from 1 agent to 5. Hardware, role design, communication, monitoring.
     [Read →](/en/architecture/)
   </Card>
   <Card title="Debug Playbook" icon="warning">
-    Model selection disasters, API quota burns, agents going silent for 6 hours… each with a fix.
+    Model selection disasters, API quota burns, agents going silent for 6 hours… each with full context and fix.
     [Read →](/en/debug-playbook/)
   </Card>
   <Card title="Workflow Recipes" icon="rocket">
-    QA gates, task queues, heartbeat monitoring, cross-machine coordination. Copy-paste ready.
+    QA gates, task queues, heartbeat monitoring, memory optimization, cross-gateway coordination.
     [Read →](/en/workflows/)
   </Card>
   <Card title="Opinions" icon="star">
     Contrarian views on AI agents: why organization > product, why agents don't need memory.
     [Read →](/en/opinions/)
+  </Card>
+  <Card title="About" icon="information">
+    What this handbook is, who's writing it, community resources.
+    [Read →](/en/about/)
   </Card>
 </CardGrid>
 
@@ -47,5 +77,29 @@ This handbook fills that gap.
 - **Communication:** Discord (inter-agent) + Telegram (human interface)
 - **Models:** Kimi 2.5 primary, OpenAI Codex fallback, MiniMax budget tier
 - **Monthly cost:** ~$30-50 (down from $200+)
+- **Tested on:** OpenClaw 2026.3.x (specifically 2026.3.2)
 
 > Everything here is based on real operational data. Not demos. Not theory.
+
+---
+
+## Community resources
+
+Can't find an answer? Try these:
+
+- **OpenClaw official docs:** [docs.openclaw.ai](https://docs.openclaw.ai) — authoritative feature documentation
+- **OpenClaw GitHub Issues:** [github.com/anthropics/claude-code/issues](https://github.com/anthropics/claude-code/issues) — search known issues and solutions
+- **GitHub Discussions:** [github.com/anthropics/claude-code/discussions](https://github.com/anthropics/claude-code/discussions) — community discussions, best practices
+- **Discord community:** OpenClaw official Discord — real-time help
+
+---
+
+## How this handbook differs from other resources
+
+| | Official Docs | Twitter/Posts | **This Handbook** |
+|---|---|---|---|
+| What you can do | ✅ | ❌ | ❌ |
+| What others did | ❌ | ✅ | ❌ |
+| What goes wrong | ❌ | ❌ | ✅ |
+| How to fix it | Partial | ❌ | ✅ |
+| How much it costs | ❌ | ❌ | ✅ |
