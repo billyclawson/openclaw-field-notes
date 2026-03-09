@@ -1,0 +1,249 @@
+---
+title: 新手上路：从零到第一个能用的 Agent
+description: 从安装 OpenClaw 到跑通第一个任务的完整指南。包括安装、配置、SOUL.md 模板、常见报错和解法。测试于 OpenClaw 2026.3.2。
+---
+
+## 你需要准备什么
+
+| 项目 | 最低要求 | 推荐配置 |
+|------|---------|---------|
+| **电脑** | Apple Silicon Mac (M1+) | MacBook Air M2 或更高 |
+| **内存** | 8GB | 16GB（跑多个 Agent 时） |
+| **系统** | macOS 14+ | macOS 15 (最新) |
+| **网络** | 能访问 API 服务 | 稳定的代理/VPN（国内用户） |
+| **订阅** | 至少一个 AI 模型的 API key 或订阅 | Claude Pro / Kimi 包月 |
+
+> **国内用户注意：** 部分 API（如 Anthropic、OpenAI）需要代理才能访问。建议在开始之前确认你的网络环境可以正常调用目标模型的 API。
+
+---
+
+## 第一步：安装 OpenClaw
+
+### 标准安装
+
+```bash
+# 官方推荐方式
+npm install -g @anthropics/openclaw
+
+# 或者用 Homebrew
+brew install openclaw
+```
+
+### 国内镜像安装（如果 npm 慢）
+
+```bash
+# 使用淘宝镜像
+npm install -g @anthropics/openclaw --registry=https://registry.npmmirror.com
+
+# 或者手动设置镜像源
+npm config set registry https://registry.npmmirror.com
+npm install -g @anthropics/openclaw
+```
+
+### 验证安装
+
+```bash
+openclaw --version
+# 应该输出类似: openclaw 2026.3.x
+
+openclaw status
+# 应该显示 gateway 状态
+```
+
+**如果 `openclaw status` 报错：**
+
+| 错误信息 | 原因 | 解法 |
+|---------|------|------|
+| `command not found` | 安装路径不在 PATH 中 | `export PATH="$PATH:$(npm bin -g)"` 加到 `.zshrc` |
+| `EACCES permission denied` | npm 全局安装权限问题 | `sudo npm install -g @anthropics/openclaw` 或改用 nvm |
+| `gateway not running` | 网关还没启动 | 执行 `openclaw gateway start` |
+
+> **参考：** 更多安装和配置问题可以搜索 [GitHub Issues](https://github.com/openclaw/openclaw/issues)。国内用户还可以参考 [中文教程合集](https://github.com/xianyu110/awesome-openclaw-tutorial)（26.3 万字，覆盖安装到进阶）。
+
+---
+
+## 第二步：配置模型
+
+OpenClaw 需要至少一个 AI 模型才能工作。
+
+### 推荐配置（省钱 + 稳定）
+
+编辑 `~/.openclaw/config/openclaw.json`：
+
+```json
+{
+  "models": {
+    "primary": {
+      "provider": "kimi",
+      "model": "kimi-coding/kimi-for-coding",
+      "note": "主力模型，前后端都行，中文理解最好"
+    },
+    "fallback": {
+      "provider": "openai",
+      "model": "openai-codex/gpt-5.3-codex",
+      "note": "备选，纯后端/算法任务"
+    },
+    "budget": {
+      "provider": "minimax",
+      "model": "minimax/MiniMax-M2.5",
+      "note": "低优先级任务，成本约为 Kimi 的 1/3"
+    }
+  },
+  "retry": {
+    "maxAttempts": 2,
+    "backoffMs": 30000,
+    "note": "2 次失败后停止，不无限重试"
+  }
+}
+```
+
+> **⚠️ 重要：** 从第一天就配置 3 个模型（主力 + 备选 + 兜底）。不要等到主力挂了才想备选方案。我们是在 Anthropic OAuth 被封当天才开始找替代方案的，全部 Agent 停摆了 4 小时。详见 [踩坑手册 #1](/debug-playbook/#坑-1anthropic-oauth-封禁事件完整复盘)。
+
+### 关于模型订阅 vs API Key
+
+| 方式 | 优点 | 缺点 | 推荐场景 |
+|------|------|------|---------|
+| **包月订阅** (如 Claude Pro, Kimi Plus) | 成本可预测，不怕超额 | 有调用频率限制 | 日常稳定使用 |
+| **按量 API Key** | 无频率限制，灵活 | 成本不可控，容易烧穿 | 高峰期或特殊任务 |
+| **OpenRouter 等聚合平台** | 一个 key 用多个模型 | 延迟略高，成本加成 | 需要频繁切换模型时 |
+
+**我们的经验：** 包月订阅（如 Kimi Plus）比按量 API 更经济。月成本从 $200+ 降到 $30-50，主要就是从按量切换到包月。
+
+---
+
+## 第三步：写你的第一个 SOUL.md
+
+SOUL.md 是 Agent 的"操作系统"。它定义了 Agent 是谁、能做什么、不能做什么。
+
+### 新手模板
+
+在你的项目根目录创建 `SOUL.md`：
+
+```markdown
+# Agent 身份
+
+你是 [名字]，一个运行在 OpenClaw 上的 [角色] Agent。
+
+## 核心规则
+
+1. 尽你所能完成任务
+2. 如果卡住超过 5 分钟，报告阻碍因素 — 不要空转
+3. 永远不要在代码中硬编码 API 密钥、密码或敏感信息
+4. 完成任务后，用摘要确认完成
+
+## 通信
+
+- 向 Discord #[频道名] 报告进度
+- 如果任务不清楚，问一次就好，然后按最佳判断执行
+- 输出格式使用 markdown
+
+## 约束
+
+⛔ 硬规则：失败的 API 调用最多重试 2 次
+⛔ 硬规则：部署前必须先跑测试
+⛔ 硬规则：上下文使用率超过 60% 时，保存状态并压缩
+```
+
+### SOUL.md 的关键原则
+
+1. **控制在 200 行以内** — 超过 200 行，Agent 会开始忽略后面的内容
+2. **把最重要的规则放在最前面** — Agent 对前 50 行的遵守率最高
+3. **用 ⛔ 标记硬性约束** — 区分"建议"和"必须"
+4. **要具体，不要抽象** — 不是"注意安全"，而是"永远不把 API key 写进代码文件"
+5. **每次出问题后更新** — SOUL.md 是活文档，应该越来越完善
+
+> **深入了解 SOUL.md 的设计哲学：** 见 [观点篇 — SOUL.md 是最重要的代码](/opinions/#观点二soulmd-是最重要的代码)
+
+---
+
+## 第四步：启动你的第一个 Agent
+
+```bash
+# 启动网关
+openclaw gateway start
+
+# 确认网关运行
+openclaw status
+# 期望输出: Gateway: RUNNING, Agents: 0
+
+# 启动 Agent（以你的项目目录为工作区）
+openclaw agent start --workspace ~/Projects/my-project/
+```
+
+### 验证 Agent 在工作
+
+```bash
+# 查看 Agent 状态
+openclaw status
+# 期望输出: Gateway: RUNNING, Agents: 1 (active)
+
+# 查看 Agent 日志（实时）
+openclaw logs --follow
+
+# 给 Agent 发一个测试任务
+openclaw message send "请列出当前目录下的所有文件，并简要说明每个文件的用途"
+```
+
+如果 Agent 返回了文件列表 — 恭喜，你的第一个 Agent 跑起来了。
+
+---
+
+## 常见问题排查
+
+### Agent 启动了但不干活
+
+```bash
+# 检查 Agent 是否连接到模型
+openclaw logs --follow
+# 看有没有 "model connection" 或 "API" 相关的错误
+
+# 检查 API key 是否有效
+openclaw config check
+```
+
+**常见原因：**
+- API key 过期或无效 → 重新生成
+- 网络不通 → 检查代理/VPN
+- 模型配额用完 → 切换到 fallback 模型
+
+### Gateway 启动失败
+
+```bash
+# 检查端口是否被占用
+lsof -i :3000  # OpenClaw 默认端口
+
+# 如果被占用，杀掉占用进程
+kill -9 $(lsof -t -i :3000)
+
+# 重新启动
+openclaw gateway start
+```
+
+### "ECONNREFUSED" 错误
+
+这意味着 Agent 无法连接到 API 服务。
+
+| 场景 | 解法 |
+|------|------|
+| 国内直连 | 配置 HTTP 代理：`export HTTPS_PROXY=http://127.0.0.1:7890` |
+| 代理配置了但还是不通 | 确认代理支持 HTTPS，且没有阻止 API 域名 |
+| 偶尔断连 | API 服务不稳定，配置 fallback 模型自动切换 |
+
+> **更多排查方法：** 见 [踩坑手册 — 急救流程](/debug-playbook/#急救流程快速诊断)
+
+---
+
+## 第五步：下一步做什么？
+
+你的第一个 Agent 跑起来之后：
+
+1. **先用一周** — 只用一个 Agent，熟悉它的行为模式和局限性
+2. **优化 SOUL.md** — 每次出问题就加一条规则，让它越来越靠谱
+3. **建立日志习惯** — 每天记录 Agent 做了什么、出了什么问题
+4. **然后再考虑加 Agent** — 当你确定单 Agent 的瓶颈在哪里时，再拆分
+
+> **什么时候该加第二个 Agent？** 见 [架构篇 — 什么时候需要多 Agent](/architecture/#什么时候需要多-agent决策树)
+
+---
+
+*准备好了？开始阅读 [架构篇](/architecture/) — 了解如何从 1 个 Agent 扩展到 5 个。*

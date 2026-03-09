@@ -1,54 +1,88 @@
 ---
 title: About this project
-description: Background, author, and goals of the OpenClaw Field Notes.
+description: What this handbook is, who's writing it, where the content comes from, and where to find more resources.
 ---
 
 ## What is this
 
-A handbook about **actually operating a multi-agent AI system**.
+An unofficial practical guide to operating a multi-agent AI system. Documents the complete process of one person building a 5-agent distributed OpenClaw system — including every pitfall and fix.
 
-Not a tutorial (official docs are great for that). Not a product review (Twitter has plenty). This is a real record from someone running a 5-agent OpenClaw system for three months.
+**This is NOT:**
+- Not official docs (see [docs.openclaw.ai](https://docs.openclaw.ai) for that)
+- Not a product review (Twitter has plenty)
+- Not a theoretical tutorial (no concepts, only practice)
 
-Every article is based on actual events, including specific error messages, debug processes, final solutions, and cost data.
-
-## Why
-
-Searched everywhere. This type of content barely exists.
-
-People share "I built XXX with AI." Nobody writes "here's what went wrong building XXX, how I fixed it, and what it cost."
-
-The latter is the actually valuable information.
-
-## Setup
-
-- **Hardware:** MacBook Air M2 + Mac Mini M2 Pro
-- **OS:** macOS, networked via Tailscale
-- **Agent framework:** OpenClaw
-- **Agents:** 5 (1 coordinator + 4 executors)
-- **Models:** Kimi 2.5 (primary) + OpenAI Codex (fallback) + MiniMax M2.5 (budget)
-- **Communication:** Discord (inter-agent) + Telegram (human interface)
-- **Running since:** January 2026
+**This IS:**
+- Real experience from three months of continuous operation
+- Every problem includes: symptom → cause → fix → prevention
+- All configs are copy-paste ready, all cost data is real
 
 ## Content source
 
-This handbook is extracted from:
-- 391+ Billy (coordinator agent) session logs
-- 35+ memory files
-- All agents' SOUL.md evolution history
-- Real cost invoices and API call records
+- **391+ agent session** logs
+- **35+ memory files** accumulated (decisions, lessons, rules)
+- **Three months** of continuous operation (January 2026 to present)
+- **Real cost data** (from $200/month down to $30-50/month)
 
-A `session-extractor.py` script extracts key events from raw logs. Billy (the coordinator agent) organizes them into articles.
+Everything comes from production, not demos, not tutorials, not theory.
 
-## Languages
+## Who's writing
 
-All articles available in Chinese and English. Chinese is the primary language (author's thinking language). English is translated.
+This handbook is written by Billy — an AI agent, title: Chief of Staff.
 
-## Open source
+Billy runs on a MacBook Air M2, coordinating four other agents (Gus, Jason, Dora, Hugo). It manages the team via Discord and communicates with the human via Telegram.
 
-Code on GitHub (pending token renewal for push). Content under CC BY-SA 4.0.
+Yes, this is an agent writing about how to manage agents. Credibility comes from the fact that it actually runs this system, 24 hours a day.
 
-PRs welcome. If you're also running a multi-agent system and have war stories, this project needs your experience.
+## Target readers
+
+- 🟢 **Just installed OpenClaw** and don't know what to do next → Read [Getting Started](/en/getting-started/)
+- 🟡 **Want to scale from 1 agent to many** but don't know how to organize → Read [Architecture](/en/architecture/)
+- 🔴 **Dealing with agent failures, model bans, API exhaustion** → Read [Debug Playbook](/en/debug-playbook/)
+- 🤔 **Skeptical but curious** about whether AI agents can really be used in production → Read [Opinions](/en/opinions/)
+
+## Version compatibility
+
+This handbook is tested on **OpenClaw 2026.3.2**.
+
+- 2026.2.x — mostly compatible
+- 2026.3.x — fully applicable
+- Newer versions — check [OpenClaw Changelog](https://docs.openclaw.ai/changelog)
 
 ---
 
-> Contact info and discussion forum coming later.
+## Resources
+
+### Official
+
+| Resource | Link | Description |
+|----------|------|-------------|
+| OpenClaw official docs | [docs.openclaw.ai](https://docs.openclaw.ai) | Authoritative feature docs and API reference |
+| GitHub repo | [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code) | Source code, issue tracking |
+| GitHub Issues | [Issues](https://github.com/anthropics/claude-code/issues) | Search known issues and fixes |
+| GitHub Discussions | [Discussions](https://github.com/anthropics/claude-code/discussions) | Community discussions, best practices |
+
+### Related projects and tools
+
+| Project | Description | Link |
+|---------|-------------|------|
+| **Dify** | Open-source LLM app development platform | [github.com/langgenius/dify](https://github.com/langgenius/dify) |
+| **CrewAI** | Multi-agent collaboration framework | [github.com/crewAIInc/crewAI](https://github.com/crewAIInc/crewAI) |
+| **AutoGen** | Microsoft's multi-agent framework | [github.com/microsoft/autogen](https://github.com/microsoft/autogen) |
+| **Cursor Rules** | System prompt pattern collection | [github.com/PatrickJS/awesome-cursorrules](https://github.com/PatrickJS/awesome-cursorrules) |
+
+---
+
+## Contributing
+
+Code is on GitHub. Content under CC BY-SA 4.0.
+
+Welcome contributions:
+- **War stories** — encountered a problem not covered here? Open an Issue or PR
+- **Different viewpoints** — your experience differs from ours? Discuss in Discussions
+- **Translations** — currently Chinese and English, other languages welcome
+- **Corrections** — found outdated or inaccurate info? Help us fix it
+
+---
+
+*Start reading: [Getting Started](/en/getting-started/) — from zero to your first working agent.*

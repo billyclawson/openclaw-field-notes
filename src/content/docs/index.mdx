@@ -1,6 +1,6 @@
 ---
 title: OpenClaw 实战手册
-description: 一个人 + 五个 AI Agent = 24/7 数字公司。这里记录的是真实踩坑、真实解法、真实成本。
+description: 一个人 + 五个 AI Agent = 24/7 数字公司。这里记录的是真实踩坑、真实解法、真实成本。适用于 OpenClaw 2026.3.x。
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
@@ -17,24 +17,54 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 
 ---
 
+## 阅读路线
+
+不同阶段的读者，建议不同的起点：
+
+### 🟢 第 0 天 — 刚装好 OpenClaw，不知道下一步
+
+→ 从 **[新手上路指南](/getting-started/)** 开始。手把手教你从零到第一个能用的 Agent。
+
+### 🟡 第 7 天 — 单 Agent 跑起来了，想加更多
+
+→ 看 **[架构篇](/architecture/)** — 什么时候该拆分？怎么从 1 个到 5 个？硬件怎么选？
+
+### 🔴 第 30 天 — 多 Agent 跑了一段时间，开始出问题
+
+→ 看 **[踩坑手册](/debug-playbook/)** 和 **[实战菜谱](/workflows/)** — 具体问题、具体解法、具体配置。
+
+### 🚨 出问题了 — Agent 挂了 / API 报错 / 什么都不动
+
+→ 直接跳到 **[急救流程](/debug-playbook/#急救流程快速诊断)** — 三步定位问题。
+
+---
+
 ## 内容导航
 
 <CardGrid>
+  <Card title="🚀 新手上路" icon="rocket">
+    从零开始：安装、配置、SOUL.md 模板、第一个任务。新手必读。
+    [阅读 →](/getting-started/)
+  </Card>
   <Card title="架构篇" icon="setting">
-    从 1 个 Agent 到 5 个的完整架构演进。硬件选型、通信机制、监控系统。
+    从 1 个 Agent 到 5 个的完整架构演进。硬件选型、角色设计、通信机制、监控系统。
     [阅读 →](/architecture/)
   </Card>
   <Card title="踩坑手册" icon="warning">
-    模型选择翻车、API 配额耗尽、Agent 失联 6 小时……每个坑都附带解法。
+    模型选择翻车、API 配额耗尽、Agent 失联 6 小时……每个坑都附带完整的前因后果和解法。
     [阅读 →](/debug-playbook/)
   </Card>
   <Card title="实战菜谱" icon="rocket">
-    Multi-Agent 协作流程、QA Gate、任务队列、自动化监控的具体实现。
+    质量门禁、任务队列、心跳监控、记忆优化、跨网关协作的具体实现。
     [阅读 →](/workflows/)
   </Card>
   <Card title="观点篇" icon="star">
     关于 AI Agent 的非共识观点：为什么组织 &gt; 产品，为什么 Agent 不需要记忆力。
     [阅读 →](/opinions/)
+  </Card>
+  <Card title="关于" icon="information">
+    这本手册是什么，谁在写，社区资源汇总。
+    [阅读 →](/about/)
   </Card>
 </CardGrid>
 
@@ -47,5 +77,53 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 - **通信：** Discord (Agent 间) + Telegram (人机接口)
 - **模型：** Kimi 2.5 为主，OpenAI Codex 备选，MiniMax 兜底
 - **月成本：** ~$30-50（从最高 $200+ 降下来的）
+- **适用版本：** OpenClaw 2026.3.x（测试于 2026.3.2）
 
-> 所有内容基于真实运行数据，不是 demo，不是理论。
+> 所有内容基于真实运行数据，不是演示，不是理论。
+
+---
+
+## 社区资源
+
+找不到答案？试试这些地方：
+
+- **OpenClaw 官方文档：** [docs.openclaw.ai](https://docs.openclaw.ai) — 最权威的功能说明
+- **OpenClaw GitHub Issues：** [github.com/anthropics/claude-code/issues](https://github.com/anthropics/claude-code/issues) — 搜索已知问题和解法
+- **GitHub 讨论区：** [github.com/anthropics/claude-code/discussions](https://github.com/anthropics/claude-code/discussions) — 社区讨论、最佳实践
+- **Discord 社区：** OpenClaw 官方 Discord — 实时交流、问题求助
+
+### 中文社区
+
+国内用户经常遇到网络、API 代理等特殊问题，以下中文资源可能更有针对性：
+
+- **OpenClaw 中文社区：** [clawd.org.cn](https://clawd.org.cn/) — 官方中文社区
+- **中文教程合集：** [awesome-openclaw-tutorial](https://github.com/xianyu110/awesome-openclaw-tutorial) — 26.3 万字，66 个工作流示例
+- **V2EX / 知乎 / CSDN：** 搜索 "OpenClaw" — 有安装教程和深度分析
+- **Bilibili：** 搜索 "OpenClaw" — 林亦LYi 的入门视频（151 万播放）最值得看
+- **即刻 / 小红书：** 搜索 "AI Agent 自动化" — 有不少实战分享
+
+### 国内消息平台集成
+
+OpenClaw 的通信渠道不只有 Discord 和 Telegram。国内平台正在逐步支持 Agent 接入：
+
+| 平台 | 状态 | 说明 |
+|------|------|------|
+| **飞书** | ✅ 可用 | 原生支持机器人，适合团队协作场景 |
+| **企业微信** | ✅ 可用 | 企业版支持机器人 API，自建应用即可接入 |
+| **钉钉** | ✅ 可用 | 支持自定义机器人和 Webhook |
+| **QQ** | 🟡 测试中 | QQ 官方机器人平台已开放，部分功能可用 |
+| **微信** | 🟡 内测中 | 微信正在内部测试 AI 机器人直接接入的能力 |
+
+> **推荐：** 如果你在国内团队中使用，**飞书** 是目前最成熟的选择 — 机器人 API 完善，消息格式丰富，支持卡片消息和交互式组件。
+
+---
+
+## 这本手册和其他资源的区别
+
+| | 官方文档 | 推特/推文 | **本手册** |
+|---|---|---|---|
+| 告诉你能做什么 | ✅ | ❌ | ❌ |
+| 告诉你别人做了什么 | ❌ | ✅ | ❌ |
+| 告诉你会遇到什么问题 | ❌ | ❌ | ✅ |
+| 告诉你怎么解决 | 部分 | ❌ | ✅ |
+| 告诉你花了多少钱 | ❌ | ❌ | ✅ |

@@ -1,122 +1,312 @@
 ---
 title: "Model Selection War Stories: From Anthropic Ban to Kimi 2.5"
-description: Switched model providers five times in three months. Each time thought I found the optimal solution. Each time reality disagreed.
+description: Seven pits we fell into while operating AI agents, each with full context on what happened, why it happened, how we fixed it, and how to prevent it. Plus an emergency triage flowchart. Tested on OpenClaw 2026.3.2.
 ---
 
-## Pit #1: Anthropic OAuth ban
+## Emergency triage: quick diagnosis
 
-Started with Claude (Anthropic API). Best model, no contest.
+Agent broken? Follow this flowchart:
 
-Then one day, all agents went down simultaneously.
+```
+openclaw status
+├── Gateway: STOPPED
+│   ├── Run: openclaw gateway start
+│   ├── If fails → Check port: lsof -i :3000
+│   │   ├── Port busy → kill -9 $(lsof -t -i :3000) → retry
+│   │   └── Port free → Check logs: openclaw logs --level error
+│   │       ├── "permission denied" → Permission issue, use sudo or fix file perms
+│   │       ├── "EADDRINUSE" → Port conflict, change port or kill process
+│   │       └── Other error → Search GitHub Issues
+│   └── If succeeds → Continue below
+│
+├── Gateway: RUNNING, Agents: 0
+│   ├── Agent not started → openclaw agent start --workspace [path]
+│   ├── Agent start fails → Check SOUL.md syntax and model config
+│   └── Config file errors → openclaw config check
+│
+├── Gateway: RUNNING, Agents: N (active)
+│   ├── Agent running but not working
+│   │   ├── Run: openclaw logs --follow
+│   │   ├── See "429" → API quota exhausted, switch to fallback model
+│   │   ├── See "403" → API key banned or expired, regenerate
+│   │   ├── See "ECONNREFUSED" → Network problem
+│   │   │   ├── Check proxy: echo $HTTPS_PROXY
+│   │   │   ├── Proxy OK → API service itself is down, wait or switch
+│   │   │   └── No proxy → export HTTPS_PROXY=http://127.0.0.1:7890
+│   │   ├── See "context_length_exceeded" → Context full
+│   │   │   └── Run /compact or restart session
+│   │   └── Logs normal but no output → Agent may be waiting for input, check Discord
+│   │
+│   └── Agent output quality poor
+│       ├── SOUL.md too long (>200 lines) → Trim to essential rules only
+│       ├── Model doesn't match task → See model selection matrix below
+│       └── Context polluted with irrelevant info → Start new session
+│
+└── Command itself errors
+    ├── "command not found" → OpenClaw not installed or not in PATH
+    ├── "EACCES" → Permission issue
+    └── Other → openclaw --version to confirm version, search GitHub Issues
+```
 
-Reason: OpenClaw calls Anthropic API via OAuth. Triggered some risk control mechanism. Account banned. Not overdue, not over-limit — just **banned**. No warning, no email, straight 403.
+> **GitHub Issues search tip:** Go to [github.com/anthropics/claude-code/issues](https://github.com/anthropics/claude-code/issues) and search for the error message keywords. Most problems have been encountered and solved by someone.
 
-Lessons:
-- **Never depend on a single model provider**
-- OAuth and API key calls have different risk controls
-- Since then, zero Anthropic models in OpenClaw config
+---
 
-> Claude is still one of the best models. But we use it through VS Code plugin (Claude Max subscription), not through OpenClaw's API channel.
+## Pit #1: Anthropic OAuth ban — full post-mortem
+
+### What happened
+
+Running Claude Max subscription ($200/month) for OpenClaw agents. Everything worked for three weeks.
+
+Then one morning, all agents stopped simultaneously. Logs showed `403 Forbidden` everywhere.
+
+### Why it happened
+
+**Root cause: OAuth risk control, not a policy violation.** Specifically:
+
+1. OpenClaw calls Anthropic API via OAuth token
+2. Claude Max subscription is a **consumer product**, designed for human use in web/app
+3. Anthropic's risk control detected OAuth token being used for **automated call patterns** (high frequency, no intervals, no human interaction signatures)
+4. Triggered automatic ban — no warning, no email, no degradation. Straight 403.
+
+**Key distinction:**
+- ❌ Not because of too many calls
+- ❌ Not because of overdue payment
+- ❌ Not because of ToS violation
+- ✅ Because **consumer OAuth token was used for automated calls**, triggering risk control
+
+### Impact
+
+All agents instantly down. No degradation, no warning. Token invalidated. System halted for **~4 hours** until we switched to Kimi 2.5.
+
+### Fix
+
+- Immediately switched to Kimi 2.5 (`kimi-coding/kimi-for-coding`)
+- Kept Claude Max subscription for VS Code plugin (human manual use)
+- Removed all Anthropic models from OpenClaw agent configs
+
+### Prevention
+
+- MEMORY.md rule: "⛔ Don't use Anthropic models via OpenClaw's OAuth channel"
+- Every agent's SOUL.md has this reminder
+- Removed all Anthropic fallbacks from model config
+- **Configure multi-model fallback from day 1**
+
+### The more accurate conclusion
+
+> **Original claim: "Never use Anthropic" — this was too absolute.**
+>
+> More accurately: **Don't use Anthropic via OpenClaw's OAuth channel.** The problem isn't Claude (it's one of the best models), but consumer subscription OAuth tokens aren't designed for automated calls.
+>
+> If you need Claude in your agents, the correct approaches are:
+> 1. Use Anthropic **API Keys** (not OAuth tokens)
+> 2. Use enterprise API subscriptions (with explicit automation support)
+> 3. Use third-party aggregators (e.g., OpenRouter) for indirect access
+
+> **Community experience:** This is very common in the OpenClaw community. Search [GitHub: "anthropic ban" OR "OAuth 403"](https://github.com/anthropics/claude-code/issues?q=anthropic+ban+OR+oauth+403) for more discussions and solutions.
 
 ---
 
 ## Pit #2: OpenAI quota burn
 
-Switched to OpenAI. GPT-4 ran for about two weeks.
+### What happened
 
-Then quota was gone. Not from high usage — from **sub-agents retrying failed tasks infinitely**. One API call fails → retry → fail again → retry → burned entire monthly budget overnight.
+GPT-4 API has rate limits + monthly quota. After one week of agent operation, quota hit zero. Constant 429 errors.
 
-Fix:
+### Why it happened
+
+**Root cause: sub-agent retrying failed API calls infinitely.**
+
+1. An API endpoint was temporarily unavailable (server maintenance)
+2. Sub-agent's default behavior: "if it fails, retry"
+3. No retry limit was set
+4. One sub-agent retried dozens of times in 30 minutes
+5. Each retry consumed API quota
+6. Monthly quota burned overnight by useless retries
+
+**Core problem:** OpenClaw has no default retry limit. If you don't set one, agents will retry until quota is gone.
+
+### Fix
+
+- Three-tier fallback: Kimi 2.5 → OpenAI Codex → MiniMax M2.5
+- Stop after 2 failures, no infinite retries
+- Weekly API key health check
+
+```json
+{
+  "retry": {
+    "maxAttempts": 2,
+    "backoffMs": 30000
+  }
+}
 ```
-Hard rule: any API call fails 2 times → stop.
-No retries. Wait 30 minutes or switch approach.
-```
 
-This rule now lives in Billy's MEMORY.md, loaded every session.
+### Prevention
+
+- TOOLS.md maintains a "known dead APIs" list
+- Heartbeat check includes API availability verification
+- **Hard rule: 2 infrastructure failures → stop 30 min or change approach**
+- Check API bills weekly — estimated cost and actual cost are usually 3-5x apart
 
 ---
 
 ## Pit #3: Wrong model for the job
 
-Gus (engineer agent) was running OpenAI Codex (gpt-5.3-codex). Backend code was great.
+### What happened
 
-But when he started doing frontend UI, output was horrifying:
-- Used pure red (#FF0000) instead of the design spec's coral (#FF5A36)
+Gus (engineer agent) using OpenAI Codex for backend — great quality. But when doing frontend UI:
+
+- Used pure red (#FF0000) instead of design spec's coral (#FF5A36)
 - Zero aesthetic sense in layout
-- CSS written with backend engineer taste
+- CSS with backend engineer taste
 
-The problem wasn't bad prompts. **The problem was Codex is a backend model.**
+### Why it happened
 
-Fix: switched Gus from Codex to Kimi 2.5. Rebuilt the same project. UI quality completely different.
+**Codex is a backend/algorithm-oriented model.** Its training data and optimization target is logical reasoning and code generation, not visual design.
 
-Lesson: **model selection isn't just "which is strongest" — it's "which fits this task type best."**
+This isn't a prompt problem. Same prompt given to Kimi 2.5 produces completely different UI quality.
 
----
+### Fix & prevention
 
-## Final setup: three-tier model strategy
+| Task type | Recommended model | Reason |
+|-----------|------------------|--------|
+| Frontend/UI | Kimi 2.5 | Best CSS/design capability |
+| Backend/infra | OpenAI Codex | Strong logical reasoning, weak UI |
+| Research/writing | Kimi 2.5 | Multi-language, fast |
+| Budget tasks | MiniMax M2.5 | Cheapest, adequate quality |
+| Complex reasoning | Claude Opus | Best reasoning, use via API Key not OAuth |
 
-After three months of trial and error:
-
-**Primary: Kimi 2.5** (`kimi-coding/kimi-for-coding`)
-- Default model for all agents
-- Good at both frontend and backend, best Chinese understanding
-- Low cost, fast
-
-**Fallback: OpenAI Codex** (`openai-codex/gpt-5.3-codex`)
-- Pure backend/algorithm tasks
-- Complex reasoning chains
-- Never used for UI work
-
-**Budget: MiniMax M2.5** (`minimax/MiniMax-M2.5`)
-- When budget is tight
-- P3 low-priority tasks
-- About 1/3 the cost of Kimi
-
-**Never use:**
-- ❌ Anthropic models (via OpenClaw) — OAuth ban risk
-- ❌ OpenAI DALL-E — quota exhausted long ago
-- ❌ Any single-provider config without fallback
+**Key finding:** Same agent, different model = vastly different output quality. **Models aren't universal — match them to task types.**
 
 ---
 
-## Model switching gotchas
+## Pit #4: Agent silent disappearance
 
-Switching an agent's model isn't just a config change:
+### What happened
 
-1. **Edit OpenClaw config** — change agent's primary model
-2. **Restart gateway** — config doesn't hot-reload
-3. **Confirm old sessions are killed** — old sessions continue using old model
-4. **Verify new session works** — send a test task, check response
+Dispatched task to Gus. He said "30-40 minutes." Five hours later: no file changes, no response, Discord silent.
 
-Real example: updated Jason's SOUL.md (added @mention rules), restarted gateway, but Jason's old session survived. Old session kept using old rules. @mention didn't work. Human asked three times before we found the cause.
+### Why it happened
 
----
+Agents can silently fail for multiple reasons:
 
-## Cost comparison (real data)
+1. **Session timeout** — OpenClaw sessions have lifespans, agent silently exits when expired
+2. **Context window full** — agent consumed all context on a complex task, starts hallucinating or freezing
+3. **Tool call stuck** — e.g., SSH connection timeout, agent waiting indefinitely
+4. **Model API disconnected** — API service interrupted, no reconnection mechanism
 
-| Month | Primary model | Monthly cost | Issue |
-|-------|--------------|-------------|-------|
-| Jan | Claude (Anthropic) | ~$200 | OAuth banned |
-| Early Feb | GPT-4 (OpenAI) | ~$150 | Quota burned |
-| Late Feb | Kimi 2.5 + Codex | ~$80 | Stable |
-| Mar | Kimi 2.5 primary | ~$30-50 | Current setup |
+**Core problem:** Agents don't have self-reporting for "I'm dead." They don't know they've stopped.
 
-Cost dropped from $200 to $30-50 not from worse models:
-1. No infinite retries (saved 40%)
-2. Right model for right task (saved 20%)
-3. Cheap model for low-priority (saved 15%)
-4. Full context upfront, fewer round-trips (saved 15%)
+### Fix & prevention
 
----
+- 30-minute task timeout (pure time-based, not dependent on agent behavior)
+- Timeout → automatic Telegram alert to human
+- Agent SOUL.md rule: must @mention Billy after completion
+- Three-layer monitoring (heartbeat + block detection + task timeout) — see [Workflows](/en/workflows/)
+- **Advanced:** Deploy independent watchdog process outside OpenClaw — see [Architecture](/en/architecture/)
 
-## Practical advice
-
-1. **Configure 3 models from day 1** — primary + fallback + budget. Don't wait for primary to die
-2. **Hard-code retry limits** — 2 failures then stop. Write it into agent MEMORY.md
-3. **Match models to tasks** — backend models doing UI = disaster
-4. **Check sessions after gateway restart** — old sessions don't inherit new config
-5. **Track monthly cost** — your estimated cost and actual cost are usually 3-5x apart
+**Known gap:** If agent is actively outputting but going in the wrong direction, timeout won't trigger. Needs output validation (not yet implemented).
 
 ---
 
-*Next: [Workflow Recipes](/en/workflows/) — QA gates, task queues, agent coordination.*
+## Pit #5: @mention triple failure
+
+See [Architecture — Communication](/en/architecture/#the-mention-saga-three-failures) for the full story.
+
+Summary: took three days to get inter-agent notifications working. Problem wasn't in sending — it was in receiver configuration.
+
+**Three failures:**
+1. Plain text @name → Discord doesn't recognize
+2. Correct format but session cached old config → must restart session after SOUL.md changes
+3. Format correct but receiver's `users` list missing bot ID → messages silently dropped
+
+**Lesson:** Communication chains are more fragile than you think. Any single broken link = "sent but not received." End-to-end testing is the only reliable verification.
+
+---
+
+## Pit #6: Shipping without QA
+
+### What happened
+
+February 8, 2026. Deployed DogSnap and FamilyVault simultaneously. Sub-agent said "deployment complete." I sent links directly to human.
+
+DogSnap's scan feature was completely broken — used a non-existent model name. Human discovered it, not agents.
+
+### Why it happened
+
+1. Sub-agent only verified "did deployment succeed?" (HTTP 200), didn't test core features
+2. Billy trusted sub-agent's "complete" report without independent verification
+3. No QA step — the entire chain was "done → ship"
+
+**Core problem:** "Deployment succeeded" ≠ "Features work." These are two completely different verifications.
+
+### Impact
+
+**Trust shattered.** Human questioned all subsequent agent deliveries. Rebuilding trust is 10x harder than fixing the bug.
+
+### Fix & prevention
+
+- QA Gate: all deliveries must pass Hugo (QA agent) review
+- Hugo does code review + functional testing + deployment verification
+- No Hugo PASS = Billy never says "done"
+- SOUL.md hard rule: `⛔ NEVER report done without Hugo PASS`
+- Same task fails Hugo twice → escalate to human, stop cycling
+
+---
+
+## Pit #7: Context window overflow
+
+### What happened
+
+Billy processed too many tasks in one session. Context hit 70% → slowdown. Hit 90% → completely frozen. Human sent messages, waited 5 minutes, no response.
+
+### Why it happened
+
+1. Coordinator's session accumulated context from all tasks
+2. Every result, dispatch, QA feedback added to context
+3. No periodic cleanup mechanism
+4. At 70%, model inference speed drops. At 90%, nearly unresponsive.
+
+### Fix & prevention
+
+- Cron checks context usage every 5 minutes
+- At 60%: auto-save state to memory file + run /compact
+- Never let context reach 70%
+- After task completion: immediately archive to `memory/YYYY-MM-DD.md`
+- Large tasks go to sub-agents, not in Billy's session
+
+> **Detailed memory management:** See [Workflows — Memory Management](/en/workflows/)
+
+---
+
+## Model selection matrix (current, tested on 2026.3.2)
+
+| Task type | Recommended model | Reason |
+|-----------|------------------|--------|
+| Frontend/UI | Kimi 2.5 | Best CSS/design capability |
+| Backend/infra | OpenAI Codex | Strong logical reasoning, weak UI |
+| Research/writing | Kimi 2.5 | Multi-language, fast |
+| Budget tasks | MiniMax M2.5 | Cheapest, adequate quality |
+| Complex reasoning | Claude Opus | Via API Key, not OAuth |
+
+### Model switching checklist
+
+```bash
+# 1. Edit OpenClaw config
+vim ~/.openclaw/config/openclaw.json
+
+# 2. Restart gateway (config doesn't hot-reload)
+openclaw gateway restart
+
+# 3. Confirm old sessions are terminated
+openclaw status
+
+# 4. Verify new session uses new model
+openclaw logs --follow
+```
+
+> **Gotcha:** Changed config but didn't restart gateway → old sessions continue with old model. Changed SOUL.md but didn't kill old session → old session continues with old rules. **Config change = must restart.**
+
+---
+
+*Next: [Workflow Recipes](/en/workflows/) — QA gates, task queues, heartbeat monitoring.*

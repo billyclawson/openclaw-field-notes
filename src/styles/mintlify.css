@@ -1,10 +1,10 @@
-/* Mintlify-style Light Theme - Override Dark Mode */
+/* OpenClaw Field Notes — Mintlify-inspired Light Theme */
 
 /* Google Fonts */
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Fragment+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fragment+Mono:ital@0;1&display=swap");
 
-/* Override BOTH light and dark themes to force light colors */
+/* ===== Theme Variables ===== */
 :root,
 :root[data-theme="light"],
 :root[data-theme="dark"],
@@ -15,22 +15,22 @@
   --sl-color-bg-nav: #ffffff !important;
   --sl-color-bg-sidebar: #fafafa !important;
   --sl-color-bg-code: #f9fafb !important;
-  --sl-color-bg-inline-code: #f5f5f5 !important;
-  
+  --sl-color-bg-inline-code: #f3f4f6 !important;
+
   /* Text */
   --sl-color-text: #374151 !important;
   --sl-color-text-headings: #111827 !important;
   --sl-color-text-secondary: #6b7280 !important;
-  
-  /* Accent (red like Mintlify) */
+
+  /* Accent (red) */
   --sl-color-accent: #dc2626 !important;
   --sl-color-accent-high: #b91c1c !important;
   --sl-color-accent-low: #fee2e2 !important;
-  
+
   /* Borders */
   --sl-color-border: #e5e7eb !important;
   --sl-color-border-sidebar: #e5e7eb !important;
-  
+
   /* Grays */
   --sl-color-gray-1: #f9fafb !important;
   --sl-color-gray-2: #f3f4f6 !important;
@@ -39,236 +39,513 @@
   --sl-color-gray-5: #9ca3af !important;
   --sl-color-gray-6: #6b7280 !important;
   --sl-color-gray-7: #374151 !important;
-  
-  /* Fonts */
-  --sl-font: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace !important;
+
+  /* Fonts — DM Sans for body (readable), Fragment Mono for code */
+  --sl-font: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
   --sl-font-mono: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace !important;
   --sl-font-headings: "DM Sans", system-ui, -apple-system, sans-serif !important;
+
+  /* Sizing */
+  --sl-content-width: 52rem;
+  --sl-text-base: 1rem;
+  --sl-line-height: 1.7;
 }
 
-/* Force light mode on html element */
+/* Force light color scheme */
 html[data-theme="dark"],
 html[data-theme="light"] {
   color-scheme: light !important;
 }
 
-/* Body */
+/* ===== Body ===== */
 body {
-  font-family: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace !important;
-  background-color: #ffffff !important;
-  color: #374151 !important;
+  background-color: #ffffff;
+  color: #374151;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Headings - DM Sans */
+/* ===== Typography ===== */
 h1, h2, h3, h4, h5, h6 {
-  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
-  color: #111827 !important;
-  font-weight: 700 !important;
+  color: #111827;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 h1 {
-  font-size: 30px !important;
-  font-weight: 700 !important;
+  font-size: 2rem;
+  line-height: 1.2;
 }
 
 h2 {
-  font-size: 24px !important;
-  margin-top: 48px !important;
+  font-size: 1.5rem;
+  margin-top: 3rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 
-/* Header - white background */
+h3 {
+  font-size: 1.25rem;
+  margin-top: 2rem;
+}
+
+p {
+  margin-bottom: 1.25rem;
+}
+
+/* ===== Header ===== */
 .header,
 header.header {
-  background-color: #ffffff !important;
-  border-bottom: 1px solid #e5e7eb !important;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .site-title {
-  color: #111827 !important;
-  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
-  font-weight: 700 !important;
+  color: #111827;
+  font-weight: 700;
 }
 
-/* Sidebar - light gray background */
+/* ===== Sidebar ===== */
 .sidebar,
 nav.sidebar,
 .sidebar-pane {
-  background-color: #fafafa !important;
-  border-right: 1px solid #e5e7eb !important;
+  background-color: #fafafa;
+  border-right: 1px solid #e5e7eb;
 }
 
 .sidebar-content {
-  background-color: #fafafa !important;
+  background-color: #fafafa;
 }
 
-/* Sidebar items - dark gray text */
 .sidebar a,
 .sidebar li a,
 #starlight__sidebar a {
-  color: #374151 !important;
-  font-size: 14px !important;
-  font-weight: 400 !important;
-  padding: 8px 16px !important;
-  border-radius: 6px !important;
-  font-family: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace !important;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 400;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .sidebar a:hover,
 #starlight__sidebar a:hover {
-  background-color: #f3f4f6 !important;
-  color: #111827 !important;
+  background-color: #f3f4f6;
+  color: #111827;
 }
 
-/* Sidebar active - red left border + light red bg */
+/* Active sidebar item */
 .sidebar a[aria-current="page"],
 #starlight__sidebar a[aria-current="page"],
 .sidebar a[aria-current="true"] {
-  background-color: #fee2e2 !important;
-  color: #dc2626 !important;
-  font-weight: 500 !important;
-  border-left: 3px solid #dc2626 !important;
-  margin-left: -3px !important;
+  background-color: #fee2e2;
+  color: #dc2626;
+  font-weight: 500;
+  border-left: 3px solid #dc2626;
+  margin-left: -3px;
 }
 
-/* Sidebar group headers */
+/* Sidebar group labels */
 .sidebar summary,
 .sidebar .group-label {
-  color: #6b7280 !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
-  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-/* Main content area - white */
+/* ===== Main Content ===== */
 .main-frame,
 main,
 .content-panel,
 .main-pane {
-  background-color: #ffffff !important;
+  background-color: #ffffff;
 }
 
-/* Right sidebar - white */
+/* ===== Right Sidebar (TOC) ===== */
 .right-sidebar,
 aside.right-sidebar {
-  background-color: #ffffff !important;
+  background-color: #ffffff;
 }
 
 .right-sidebar h2 {
-  color: #6b7280 !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  text-transform: uppercase !important;
-  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .right-sidebar a {
-  color: #6b7280 !important;
-  font-size: 13px !important;
-  font-family: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace !important;
+  color: #6b7280;
+  font-size: 0.8125rem;
+  transition: color 0.15s ease;
 }
 
 .right-sidebar a:hover {
-  color: #374151 !important;
+  color: #374151;
 }
 
 .right-sidebar a[aria-current="true"] {
-  color: #dc2626 !important;
+  color: #dc2626;
 }
 
-/* Code blocks - light background */
+/* ===== Code ===== */
 code {
-  font-family: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace !important;
-  background-color: #f5f5f5 !important;
-  color: #374151 !important;
-  padding: 2px 6px !important;
-  border-radius: 4px !important;
-  font-size: 14px !important;
+  font-family: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  background-color: #f3f4f6;
+  color: #374151;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-size: 0.875em;
 }
 
 pre {
-  background-color: #f9fafb !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 8px !important;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
 }
 
 pre code {
-  background-color: transparent !important;
+  background-color: transparent;
+  padding: 0;
+  font-size: 0.85rem;
 }
 
-/* Search button */
+/* ===== Search Button ===== */
 site-search button,
 [data-open-modal] {
-  background-color: #f3f4f6 !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 9999px !important;
-  color: #6b7280 !important;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  color: #6b7280;
+  transition: border-color 0.15s ease;
 }
 
-/* Pagination / Prev Next links */
+site-search button:hover,
+[data-open-modal]:hover {
+  border-color: #d1d5db;
+}
+
+/* ===== Pagination ===== */
 .pagination-links a,
 footer a[rel="prev"],
 footer a[rel="next"] {
-  background-color: #ffffff !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 8px !important;
-  color: #374151 !important;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #374151;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .pagination-links a:hover {
-  border-color: #dc2626 !important;
+  border-color: #dc2626;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.08);
 }
 
-/* Tables */
+/* ===== Tables ===== */
 table {
-  border: 1px solid #e5e7eb !important;
+  border: 1px solid #e5e7eb;
+  border-collapse: collapse;
+  width: 100%;
 }
 
 th {
-  background-color: #f9fafb !important;
-  color: #111827 !important;
-  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
+  background-color: #f9fafb;
+  color: #111827;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
 }
 
 td {
-  border-top: 1px solid #e5e7eb !important;
+  border-top: 1px solid #e5e7eb;
+  padding: 0.75rem 1rem;
 }
 
-/* Blockquotes - orange left border */
+/* ===== Blockquotes ===== */
 blockquote {
-  border-left: 4px solid #f97316 !important;
-  background-color: #fff7ed !important;
-  color: #374151 !important;
-  padding: 16px !important;
-  border-radius: 0 8px 8px 0 !important;
+  border-left: 4px solid #f97316;
+  background-color: #fff7ed;
+  color: #374151;
+  padding: 1rem 1.25rem;
+  border-radius: 0 8px 8px 0;
+  margin: 1.5rem 0;
 }
 
-/* Hide theme toggle - force light mode */
+blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* ===== Cards (Starlight) ===== */
+.card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  border-color: #dc2626;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.06);
+}
+
+.card .card-title {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* ===== Hide Theme Toggle (force light mode) ===== */
 starlight-theme-select,
 [data-theme-toggle] {
   display: none !important;
 }
 
-/* Links */
+/* ===== Links ===== */
 a {
-  color: #dc2626 !important;
+  color: #dc2626;
+  text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 a:hover {
-  color: #b91c1c !important;
+  color: #b91c1c;
+  text-decoration: underline;
 }
 
-/* Selection highlight */
+/* ===== Selection ===== */
 ::selection {
-  background-color: #fee2e2 !important;
-  color: #111827 !important;
+  background-color: #fee2e2;
+  color: #111827;
 }
 
-/* Page title area */
+/* ===== Content Page Title ===== */
 .content-panel h1 {
-  color: #111827 !important;
-  font-size: 30px !important;
-  font-weight: 700 !important;
-  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
+  color: #111827;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+
+/* ===== Lists ===== */
+ul, ol {
+  padding-left: 1.5rem;
+}
+
+li {
+  margin-bottom: 0.375rem;
+}
+
+li::marker {
+  color: #9ca3af;
+}
+
+/* ===== Horizontal Rule ===== */
+hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 2.5rem 0;
+}
+
+/* ===== Strong / Bold ===== */
+strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+/* ===== Focus Styles (Accessibility) ===== */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ===== Skip Link (Accessibility) ===== */
+.skip-link:focus {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: #dc2626;
+  color: #ffffff;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* ===== Mobile Responsive ===== */
+
+/* Tablet breakpoint */
+@media (max-width: 72rem) {
+  .right-sidebar,
+  aside.right-sidebar {
+    display: none;
+  }
+}
+
+/* Mobile breakpoint */
+@media (max-width: 50rem) {
+  :root,
+  :root[data-theme="light"],
+  :root[data-theme="dark"] {
+    --sl-text-base: 0.9375rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    margin-top: 2rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    margin-top: 1.5rem;
+  }
+
+  .content-panel h1 {
+    font-size: 1.5rem;
+  }
+
+  /* Tighter content padding on mobile */
+  .content-panel,
+  .main-pane {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Tables scroll horizontally instead of breaking layout */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  /* Code blocks: smaller text, horizontal scroll */
+  pre {
+    padding: 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+  }
+
+  pre code {
+    font-size: 0.8rem;
+  }
+
+  code {
+    font-size: 0.825em;
+    word-break: break-word;
+  }
+
+  /* Blockquotes: tighter padding */
+  blockquote {
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+  }
+
+  /* Cards: single column, tighter spacing */
+  .card {
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  /* Pagination: stack vertically */
+  .pagination-links {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .pagination-links a {
+    width: 100%;
+  }
+
+  /* Lists: tighter indent */
+  ul, ol {
+    padding-left: 1.25rem;
+  }
+
+  /* Horizontal rules */
+  hr {
+    margin: 1.5rem 0;
+  }
+
+  /* Mobile header: compact */
+  .header,
+  header.header {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .site-title {
+    font-size: 0.9rem;
+  }
+}
+
+/* Small phone breakpoint */
+@media (max-width: 30rem) {
+  h1 {
+    font-size: 1.3rem;
+  }
+
+  h2 {
+    font-size: 1.125rem;
+  }
+
+  .content-panel h1 {
+    font-size: 1.3rem;
+  }
+
+  .content-panel,
+  .main-pane {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  /* Even tighter card padding */
+  .card {
+    padding: 0.75rem;
+  }
+
+  /* Table cells: smaller padding */
+  th, td {
+    padding: 0.5rem 0.625rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Touch-friendly tap targets */
+@media (pointer: coarse) {
+  .sidebar a,
+  .sidebar li a,
+  #starlight__sidebar a {
+    padding: 0.625rem 1rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .pagination-links a {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* Prevent zoom on input focus (iOS) */
+@media screen and (max-width: 50rem) {
+  input, select, textarea {
+    font-size: 16px;
+  }
 }

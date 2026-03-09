@@ -3,6 +3,10 @@ title: "Opinions: Contrarian Views on AI Agents"
 description: Views formed after three months of running a multi-agent system. Not necessarily right, but paid for in real money and lost sleep.
 ---
 
+These views come from three months of real operations. Not theory — conclusions hammered out by reality. You may disagree. That's fine.
+
+---
+
 ## Opinion 1: Organization > Product
 
 Most people use AI agents to build **products**: an app, a website, a bot.
@@ -15,93 +19,156 @@ Why organization over product?
 
 - **Products become obsolete.** The app you build today might be irrelevant in 6 months.
 - **Organizations keep producing.** The same agent team can build unlimited products.
-- **Organizations self-improve.** Every failure gets written into SOUL.md. Next time it won't happen again. Product bug fixes are one-time. Organizational mechanism improvements are permanent.
+- **Organizations self-improve.** Every failure gets written into SOUL.md. Product bug fixes are one-time. Organizational mechanism improvements are permanent.
 
 Spend 80% of time building organization (processes, monitoring, communication, QA). 20% on specific products. Not the reverse.
 
----
-
-## Opinion 2: Agents don't need memory, they need documentation
-
-Many people research better agent memory: vector databases, RAG, long-term storage.
-
-My experience: **agent memory doesn't matter. What the agent reads at session start matters.**
-
-Billy's SOUL.md is 200+ lines. Defines role, rules, constraints, historical lessons. Loaded at every new session start. More reliable than any memory system.
-
-Why?
-- Memory is **passive** — agent might recall it, might not
-- Documentation is **active** — force-loaded every session, no "forgetting" possible
-- Memory **decays** — vector search relevance drops over time
-- Documentation is **deterministic** — what you write is what it reads, no probability
-
-I write all critical rules as ⛔ HARD RULE at the top of SOUL.md. Agent doesn't need to "remember" what it can't do — it's **told** every time it starts.
+> **Comparison:** Frameworks like [CrewAI](https://github.com/crewAIInc/crewAI) and [AutoGen](https://github.com/microsoft/autogen) provide multi-agent collaboration scaffolding, but they lean toward "use agents to build a product." Our approach is closer to "use agents to build an organization." Not mutually exclusive, but different starting points.
 
 ---
 
-## Opinion 3: Failure is the system's most valuable input
+## Opinion 2: SOUL.md is the most important code
 
-Every time an agent screws up, I do three things:
+Agent behavior isn't determined by code — it's determined by system prompts. SOUL.md is the agent's "operating system."
 
-1. **Ask the agent:** "Walk me through your reasoning" — understand why it made that decision
-2. **Find root cause:** insufficient context? Wrong tool? Model capability gap?
-3. **Write a mechanism:** add a rule to SOUL.md or MEMORY.md to prevent the same class of failure
+Well-written SOUL.md:
+- Clear role boundaries (what you do, what you don't)
+- Specific operational rules (not "be safe," but "never write API keys into chat")
+- Failure behavior constraints ("stop retrying after 2 failures")
+- Communication protocols ("must @mention Billy after completion")
 
-Never just "retry." Every failure must produce a new rule.
+Poorly-written SOUL.md:
+- "You are a helpful AI assistant"
+- No constraints, relies entirely on agent judgment
+- Rules too long, agent ignores half
 
-Examples:
-- Gus deployed broken product → added QA Gate rule
-- Billy's context filled up and froze → added context monitor cron
-- API calls retried infinitely → added 2-failure stop rule
-- Agent went silent for hours → added three-layer monitoring
+**Rule of thumb:** Keep SOUL.md under 200 lines. Beyond 200, agents start ignoring later rules. Put critical rules first, mark hard constraints with ⛔.
 
-After three months, roughly 30% of SOUL.md content was distilled from failures. These rules are worth more than any individual task output.
+### Concrete SOUL.md structure advice
 
-**Harness Engineering core:** every failure becomes a permanent mechanism, driving recurrence probability toward zero.
+```markdown
+# Good SOUL.md structure
 
----
+## 1. Identity (first 10 lines)
+Who you are, your role, core responsibilities
 
-## Opinion 4: Human attention is the scarcest resource
+## 2. Hard constraints (first 50 lines)
+⛔-marked rules that must never be violated
+Put these first — model compliance is highest for the first 50 lines
 
-Five agents running simultaneously. Theoretically 5x productivity.
+## 3. Workflow (lines 50-150)
+Standard operating procedures, communication protocols, reporting formats
 
-In practice, the bottleneck is **human attention**.
+## 4. Context (lines 150-200)
+Current project state, known issues, notes
+```
 
-- 5 agents reporting progress simultaneously → human can't process
-- 3 agents stuck waiting for human reply → human has decision paralysis
-- During 12 waking hours, human spends most time handling agent issues, not thinking strategy
-
-Solutions:
-
-1. **Billy is the only interface** — human only talks to Billy. Billy handles dispatch and aggregation
-2. **Agents shouldn't ask questions** — if the brief is good, no follow-up needed. If follow-up is needed, the brief was bad
-3. **Automated decisions** — P2/P3 tasks, agents decide how to execute. Only P0/P1 need human input
-4. **Batch reporting** — don't report after every completed task. Batch 3-5 together
-
-Goal: human spends 30 minutes/day managing agents. Rest of time on things only humans can do (creativity, strategy, relationships).
-
-Not there yet. Working toward it.
+> **Further reading:** Anthropic has detailed [system prompt best practices](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering). Also, [Cursor Rules patterns](https://github.com/PatrickJS/awesome-cursorrules) has many transferable ideas.
 
 ---
 
-## Opinion 5: Speed is worthless, reliability is everything
+## Opinion 3: Agents don't need long-term memory
 
-The AI world is obsessed with speed: build an app in 5 minutes, generate an article in 10 seconds.
+Intuition says agents should remember all history. In practice, this causes context overflow and hallucination.
 
-After three months of multi-agent operations: **speed is an illusion. Reliability is real.**
+My approach: **short-term memory + on-demand search**:
+- Today's log auto-loaded (`memory/YYYY-MM-DD.md`)
+- Historical info retrieved via semantic search as needed
+- Long-term decisions written to MEMORY.md (manually maintained, under 200 lines)
 
-An agent builds something in 5 minutes with a bug. Debugging takes 2 hours. Net negative.
+This is 10x more effective than "remember everything." Agent context windows are finite — filling them with irrelevant history = degrading current task quality.
 
-An agent builds something in 30 minutes, correct first time. Saves all subsequent fix time. Net positive.
+**Analogy:** You don't need to remember what you ate every day last year. You need to know what you're allergic to. The former is historical data; the latter is decision rules. Same for agents.
 
-Therefore:
-- Better to spend 20 minutes writing a brief than have the agent redo it 3 times
-- Better to run full QA adding 10 minutes than send the human a broken link
-- Better to use a slightly more expensive model that gets it right than use a cheap model 5 times
+### Why not vector databases / RAG?
 
-**"Get it right the first time or start over. Fixing old code is more wasteful than starting new."**
-— Direct quote from the human. He was right.
+Many people research better agent memory via vector databases (embedding → store → retrieve). We tried it but found:
+
+1. **Unreliable recall** — semantic search recall rate isn't high enough for critical info
+2. **Noisy results** — "relevant" content mixed with irrelevant info, diluting useful context
+3. **High maintenance** — requires additional infrastructure (vector DB, embedding API)
+4. **Non-deterministic** — you can't be sure what the agent will retrieve each time
+
+**Our alternative:**
+- SOUL.md + MEMORY.md = **deterministic documents**, loaded every session, 100% reliable
+- Daily logs = **short-term memory**, only today's, not drowned by history
+- When historical info needed = **human specifies** ("refer to memory/2026-02-08.md")
+
+> **Detailed memory configs:** See [Workflows — Memory Management](/en/workflows/)
 
 ---
 
-*Final page: [About](/en/about/) — who built this and why.*
+## Opinion 4: Failure is the system's most valuable input
+
+Every failure should become a permanent mechanism. Not "be more careful next time" — write it as a rule, script, or constraint.
+
+Our process:
+1. Failure happens
+2. Ask the agent: "Walk me through your reasoning"
+3. Identify root cause (lost context? wrong tool? bad assumption?)
+4. Implement prevention: edit SOUL.md, add memory note, create new check
+5. Log to `memory/improvements-log.md`
+
+**Hard rule: never just retry. Always add a guardrail first.**
+
+This is **Harness Engineering** — every failure makes the system stronger. After months, most common failure patterns are covered by rules. Agents become more reliable not because models improved, but because constraints became more comprehensive.
+
+### Real examples
+
+| Failure | Root cause | New rule |
+|---------|-----------|----------|
+| Shipped broken product | No QA step | ⛔ QA Gate — Hugo must PASS |
+| Context froze Billy | No context monitoring | ⛔ Auto-compact at 60% |
+| API quota burned overnight | Infinite retries | ⛔ Stop after 2 failures |
+| Agent silent for 6 hours | No timeout mechanism | 30-min task timeout alert |
+| @mention not working | Format/config errors | End-to-end communication test checklist |
+| SOUL.md update not taking effect | Session caching | Must restart gateway after config changes |
+
+> **After three months:** ~30% of SOUL.md rules were distilled from failures. These rules are worth more than any individual task output.
+
+---
+
+## Opinion 5: Human attention is the real bottleneck
+
+With 5 agents running simultaneously, the bottleneck isn't compute, API quota, or model capability. **It's your attention.**
+
+5 agents producing simultaneously → you need to review 5 outputs → each needs quality judgment → each judgment needs context → your brain is single-threaded.
+
+This is why QA Gate isn't wasted time — it's an attention lever. Hugo does first-pass review; you only need to see PASS/FAIL and a summary.
+
+**Deeper insight:** As agent count grows, you don't need more agents — you need better filtering. Information must be tiered. Only things requiring human decisions reach you. Everything else, agents handle.
+
+### Concrete practices
+
+1. **Billy is the only interface** — human only talks to Billy. Billy handles all dispatch and aggregation.
+2. **Agents shouldn't ask questions** — if the brief is good, no follow-up needed. If follow-up is needed, the brief was bad.
+3. **Automated decisions** — P2/P3 tasks, agents decide execution. Only P0/P1 need human input.
+4. **Batch reporting** — don't report after every task. Batch 3-5 together.
+
+**Goal:** Human spends 30 minutes/day managing agents. Rest on things only humans can do. Not there yet. Working toward it.
+
+---
+
+## Opinion 6: Speed is worthless, reliability is everything
+
+A system that gives 80% results every time is far more valuable than one that gives 100% sometimes and 0% other times.
+
+The former you can trust, delegate to, go to sleep. The latter you must watch, always ready to firefight.
+
+This is why I spent enormous time on QA, monitoring, constraints — looks "slow," but it's building trust. When you trust the system, you can truly let go. After letting go, system output far exceeds what you'd get by watching it.
+
+**Analogy:** You wouldn't give money to a fund manager who sometimes makes 100% and sometimes loses everything. You'd pick the one with steady 15% annual returns. Agent systems are the same.
+
+---
+
+## Summary
+
+The common theme across all six opinions: **AI agents' value isn't how smart they are — it's how much you can trust them.** Trust comes from reliability. Reliability comes from constraints and monitoring.
+
+Being smart is the model company's job. Your job is building systems that make smart reliable.
+
+> **If you have different experiences and opinions** — open a GitHub Issue for discussion. Multi-agent systems are still early stage. We need more real cases to validate or challenge these views.
+
+---
+
+*More practical content: [Architecture](/en/architecture/) | [Debug Playbook](/en/debug-playbook/) | [Workflows](/en/workflows/)*

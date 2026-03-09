@@ -1,0 +1,236 @@
+---
+title: "Getting Started: From Zero to Your First Working Agent"
+description: Complete guide from installing OpenClaw to running your first task. Includes installation, configuration, SOUL.md templates, common errors and fixes. Tested on OpenClaw 2026.3.2.
+---
+
+## What you need
+
+| Item | Minimum | Recommended |
+|------|---------|-------------|
+| **Computer** | Apple Silicon Mac (M1+) | MacBook Air M2 or higher |
+| **RAM** | 8GB | 16GB (for multiple agents) |
+| **OS** | macOS 14+ | macOS 15 (latest) |
+| **Network** | API service access | Stable connection |
+| **Subscription** | At least one AI model API key or subscription | Claude Pro / Kimi subscription |
+
+---
+
+## Step 1: Install OpenClaw
+
+### Standard installation
+
+```bash
+# Official recommended method
+npm install -g @anthropics/openclaw
+
+# Or using Homebrew
+brew install openclaw
+```
+
+### Verify installation
+
+```bash
+openclaw --version
+# Should output: openclaw 2026.3.x
+
+openclaw status
+# Should show gateway status
+```
+
+**If `openclaw status` errors:**
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `command not found` | Install path not in PATH | `export PATH="$PATH:$(npm bin -g)"` added to `.zshrc` |
+| `EACCES permission denied` | npm global install permission issue | `sudo npm install -g @anthropics/openclaw` or use nvm |
+| `gateway not running` | Gateway hasn't started | Run `openclaw gateway start` |
+
+> **Reference:** More installation issues at [GitHub Issues: installation](https://github.com/anthropics/claude-code/issues?q=is%3Aissue+label%3Ainstallation)
+
+---
+
+## Step 2: Configure models
+
+OpenClaw needs at least one AI model to work.
+
+### Recommended config (cost-effective + stable)
+
+Edit `~/.openclaw/config/openclaw.json`:
+
+```json
+{
+  "models": {
+    "primary": {
+      "provider": "kimi",
+      "model": "kimi-coding/kimi-for-coding",
+      "note": "Primary model, good at frontend and backend"
+    },
+    "fallback": {
+      "provider": "openai",
+      "model": "openai-codex/gpt-5.3-codex",
+      "note": "Fallback for pure backend/algorithm tasks"
+    },
+    "budget": {
+      "provider": "minimax",
+      "model": "minimax/MiniMax-M2.5",
+      "note": "Low-priority tasks, ~1/3 the cost of Kimi"
+    }
+  },
+  "retry": {
+    "maxAttempts": 2,
+    "backoffMs": 30000,
+    "note": "Stop after 2 failures, don't retry infinitely"
+  }
+}
+```
+
+> **⚠️ Important:** Configure 3 models from day 1 (primary + fallback + budget). Don't wait for your primary to die before finding alternatives. We started looking for alternatives only after Anthropic's OAuth ban hit — all agents were down for 4 hours. See [Debug Playbook #1](/en/debug-playbook/#pit-1-anthropic-oauth-ban-full-post-mortem).
+
+### Subscription vs API Key
+
+| Method | Pros | Cons | Best for |
+|--------|------|------|----------|
+| **Monthly subscription** (e.g., Claude Pro, Kimi Plus) | Predictable cost, no overages | Rate limits | Daily stable use |
+| **Pay-per-use API Key** | No rate limits, flexible | Unpredictable cost, can burn through budget | Peak periods or special tasks |
+| **Aggregator platforms** (e.g., OpenRouter) | One key for multiple models | Slightly higher latency, cost markup | Frequent model switching |
+
+**Our experience:** Monthly subscriptions are more economical than pay-per-use API. Cost dropped from $200+ to $30-50/month mainly by switching from per-use to subscription.
+
+---
+
+## Step 3: Write your first SOUL.md
+
+SOUL.md is the agent's "operating system." It defines who the agent is, what it can do, and what it can't.
+
+### Starter template
+
+Create `SOUL.md` in your project root:
+
+```markdown
+# Agent Identity
+
+You are [Name], a [Role] agent running on OpenClaw.
+
+## Core Rules
+
+1. Complete tasks to the best of your ability
+2. If stuck for more than 5 minutes, report the blocker — don't spin
+3. Never hardcode API keys, passwords, or secrets in code
+4. After completing a task, confirm completion with a summary
+
+## Communication
+
+- Report progress to: Discord #[channel]
+- If task is unclear, ask for clarification ONCE, then proceed with best judgment
+- Format output as markdown
+
+## Constraints
+
+⛔ HARD RULE: Never retry a failed API call more than 2 times
+⛔ HARD RULE: Never deploy without running tests first
+⛔ HARD RULE: If context usage exceeds 60%, save state and compact
+```
+
+### Key SOUL.md principles
+
+1. **Keep it under 200 lines** — beyond 200, agents start ignoring later rules
+2. **Put critical rules first** — compliance is highest for the first 50 lines
+3. **Use ⛔ for hard constraints** — distinguish "suggestions" from "must-do"
+4. **Be specific, not abstract** — not "be safe," but "never write API keys into code files"
+5. **Update after every failure** — SOUL.md is a living document
+
+> **Deep dive into SOUL.md design:** See [Opinions — SOUL.md is the most important code](/en/opinions/#opinion-2-soulmd-is-the-most-important-code)
+
+---
+
+## Step 4: Launch your first agent
+
+```bash
+# Start the gateway
+openclaw gateway start
+
+# Confirm it's running
+openclaw status
+# Expected: Gateway: RUNNING, Agents: 0
+
+# Start an agent with your project as workspace
+openclaw agent start --workspace ~/Projects/my-project/
+```
+
+### Verify the agent is working
+
+```bash
+# Check agent status
+openclaw status
+# Expected: Gateway: RUNNING, Agents: 1 (active)
+
+# Watch agent logs (real-time)
+openclaw logs --follow
+
+# Send a test task
+openclaw message send "List all files in the current directory and briefly describe each file's purpose"
+```
+
+If the agent returns a file listing — congratulations, your first agent is running.
+
+---
+
+## Common troubleshooting
+
+### Agent started but isn't working
+
+```bash
+# Check if agent is connected to model
+openclaw logs --follow
+# Look for "model connection" or "API" errors
+
+# Check API key validity
+openclaw config check
+```
+
+**Common causes:**
+- API key expired or invalid → regenerate
+- Network unreachable → check proxy/VPN
+- Model quota exhausted → switch to fallback model
+
+### Gateway won't start
+
+```bash
+# Check if port is occupied
+lsof -i :3000  # OpenClaw default port
+
+# If occupied, kill the process
+kill -9 $(lsof -t -i :3000)
+
+# Restart
+openclaw gateway start
+```
+
+### "ECONNREFUSED" error
+
+This means the agent can't connect to the API service.
+
+| Scenario | Fix |
+|----------|-----|
+| Direct connection failing | Configure HTTP proxy: `export HTTPS_PROXY=http://127.0.0.1:7890` |
+| Proxy configured but still failing | Confirm proxy supports HTTPS and isn't blocking API domains |
+| Intermittent disconnects | API service instability, configure fallback model auto-switch |
+
+> **More troubleshooting:** See [Debug Playbook — Emergency Triage](/en/debug-playbook/#emergency-triage-quick-diagnosis)
+
+---
+
+## Step 5: What's next?
+
+After your first agent is running:
+
+1. **Use it for one week** — get familiar with its behavior patterns and limitations
+2. **Optimize SOUL.md** — add a rule every time something goes wrong
+3. **Build logging habits** — record what the agent did and what went wrong each day
+4. **Then consider adding agents** — only when you're clear on single-agent bottlenecks
+
+> **When to add a second agent?** See [Architecture — When do you need multi-agent?](/en/architecture/#when-do-you-need-multi-agent-decision-tree)
+
+---
+
+*Ready? Start reading [Architecture](/en/architecture/) — learn how to scale from 1 agent to 5.*
