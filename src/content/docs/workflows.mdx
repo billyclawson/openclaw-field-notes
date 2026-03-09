@@ -248,45 +248,45 @@ memory/
 **每日日志模板：**
 
 ```markdown
-# 2026-03-09 Daily Log
+# 2026-03-09 每日日志
 
 ## 完成的任务
-- [x] 任务描述 | agent: Gus | qa: PASS | 耗时: 25min
+- [x] 任务描述 | agent: Gus | 质量检查: 通过 | 耗时: 25min
 
 ## 进行中
-- [~] 任务描述 | agent: Jason | dispatched: 14:30
+- [~] 任务描述 | agent: Jason | 已分发: 14:30
 
-## 问题 & 改进
+## 问题与改进
 - 问题：Gus 部署时 SSH 超时
 - 原因：Mac Mini 睡眠了
 - 改进：加了 caffeinate -d 到启动脚本
 
 ## 统计
 - 任务完成: 5/6
-- QA 通过率: 4/5 (80%)
+- 质量检查通过率: 4/5 (80%)
 - API 调用: ~120 次
 ```
 
-### Compaction 策略
+### 压缩策略
 
-**什么时候触发 Compaction：**
-- Context 使用率到 60% → 自动触发
-- 任务完成后 → 归档结果到 daily log，然后 compact
-- Session 运行超过 2 小时 → 主动 compact
+**什么时候触发压缩：**
+- 上下文使用率到 60% → 自动触发
+- 任务完成后 → 归档结果到每日日志，然后压缩
+- 会话运行超过 2 小时 → 主动压缩
 
-**Compaction 不是 OpenClaw 内置功能** — 它是通过 `/compact` 命令或在 SOUL.md 中设置自动触发规则来实现的。具体来说：
+**压缩不是 OpenClaw 内置功能** — 它是通过 `/compact` 命令或在 SOUL.md 中设置自动触发规则来实现的。具体来说：
 
 1. `/compact` 命令让模型总结当前对话，丢弃早期细节
 2. 你也可以在 cron 里定期执行类似操作
-3. 关键信息应该在 compact 之前保存到 memory 文件
+3. 关键信息应该在压缩之前保存到记忆文件
 
 ---
 
-## 流程七：Sub-Agent 效率原则
+## 流程七：子 Agent 效率原则
 
-### Fat Task, Thin Agent
+### 厚任务，薄 Agent
 
-给 Sub-agent 一次性提供所有信息，不来回追问。目标：每个 Sub-agent 的 session 里只有 3-5 次工具调用。
+给子 Agent 一次性提供所有信息，不来回追问。目标：每个子 Agent 的会话里只有 3-5 次工具调用。
 
 **反模式：**
 ```
